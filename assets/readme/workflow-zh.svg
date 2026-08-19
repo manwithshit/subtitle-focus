@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="220" viewBox="0 0 1200 220" role="img" aria-labelledby="title desc">
+  <title id="title">三道确认闸</title>
+  <desc id="desc">先确认高亮词，再看 10 到 15 秒样片，通过后才烧全片。</desc>
+  <rect width="1200" height="220" rx="28" fill="#141416"/>
+  <g transform="translate(40 36)">
+    <rect width="340" height="148" rx="20" fill="#1E1E22"/>
+    <text x="28" y="40" fill="#8A8A8A" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18">01</text>
+    <text x="28" y="84" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="28" font-weight="700">文字</text>
+    <text x="28" y="120" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="18">先对高亮词表。</text>
+    <text x="28" y="146" fill="#FFD600" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="16">用户点头之前不渲。</text>
+  </g>
+  <g transform="translate(430 36)">
+    <rect width="340" height="148" rx="20" fill="#1E1E22"/>
+    <text x="28" y="40" fill="#8A8A8A" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18">02</text>
+    <text x="28" y="84" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="28" font-weight="700">样片</text>
+    <text x="28" y="120" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="18">烧 10–15 秒试片。</text>
+    <text x="28" y="146" fill="#FFD600" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="16">观感通过之前不进全片。</text>
+  </g>
+  <g transform="translate(820 36)">
+    <rect width="340" height="148" rx="20" fill="#1E1E22"/>
+    <text x="28" y="40" fill="#8A8A8A" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18">03</text>
+    <text x="28" y="84" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="28" font-weight="700">全片</text>
+    <text x="28" y="120" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="18">再烧完整成片。</text>
+    <text x="28" y="146" fill="#FFD600" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="16">样片过了才动手。</text>
+  </g>
+</svg>

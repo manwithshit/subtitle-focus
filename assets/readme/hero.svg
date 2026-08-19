@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
+  <title id="title">subtitle-focus</title>
+  <desc id="desc">Agent skill that burns SRT captions onto video as yellow-keyword cards, without CapCut or Jianying.</desc>
+  <rect width="1200" height="360" rx="28" fill="#141416"/>
+  <text x="56" y="78" fill="#8A8A8A" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="18" letter-spacing="3.2">AGENT SKILL</text>
+  <text x="56" y="148" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="56" font-weight="700">subtitle-focus</text>
+  <text x="56" y="196" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="24">Burn an SRT as yellow-keyword caption cards.</text>
+  <text x="56" y="232" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="24">No CapCut. No Jianying. Local FFmpeg only.</text>
+  <rect x="56" y="262" width="176" height="36" rx="10" fill="#2A2A2C"/>
+  <text x="144" y="286" text-anchor="middle" fill="#FFD600" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15">text → sample → cut</text>
+  <rect x="690" y="92" width="454" height="88" rx="22" fill="#5A5A5C"/>
+  <text x="718" y="148" fill="#FFD600" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="28" font-weight="700">vibe coding</text>
+  <text x="888" y="148" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="28" font-weight="600">出来的一个项目</text>
+  <rect x="690" y="198" width="454" height="88" rx="22" fill="#5A5A5C"/>
+  <text x="718" y="254" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="28" font-weight="600">所以我最后用的是</text>
+  <text x="958" y="256" fill="#FFD600" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="36" font-weight="700">C 组</text>
+</svg>

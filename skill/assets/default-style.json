@@ -1,0 +1,19 @@
+{
+  "font_path": "",
+  "font_index": 7,
+  "font_size_ratio": 0.048,
+  "font_size_min": 34,
+  "font_size_max": 112,
+  "highlight_scale": 1.34,
+  "normal_color": [255, 255, 255, 255],
+  "highlight_color": [255, 214, 0, 255],
+  "highlight_stroke_color": [20, 20, 20, 255],
+  "highlight_stroke_width_ratio": 0.07,
+  "background_color": [80, 80, 80, 176],
+  "padding_x_ratio": 0.28,
+  "padding_y_ratio": 0.28,
+  "bubble_corner_percent": 40,
+  "center_x_ratio": 0.5,
+  "center_y_ratio": 0.82,
+  "safe_width_ratio": 0.94
+}
