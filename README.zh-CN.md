@@ -3,138 +3,230 @@
 </p>
 
 <p align="center">
-  <img src="./assets/readme/hero-zh.svg" width="100%" alt="subtitle-focus：把 SRT 烧成黄字重点字幕条，不经过剪映或 CapCut">
+  <img src="./assets/readme/hero-zh.svg" width="100%" alt="subtitle-focus：在本机完成 SRT 校对锁定、高亮烧录、抽帧检查和交付登记">
 </p>
 
 <p align="center">
-  <a href="https://github.com/manwithshit/subtitle-focus/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="开源协议"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT 许可"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.9%2B-3776AB.svg?logo=python&logoColor=white" alt="Python 3.9+"></a>
-  <a href="https://ffmpeg.org/"><img src="https://img.shields.io/badge/FFmpeg-依赖必需-007800.svg?logo=ffmpeg&logoColor=white" alt="需要 FFmpeg"></a>
-  <img src="https://img.shields.io/badge/隐私-只走本机文件-34d399.svg" alt="只走本机文件">
+  <a href="https://ffmpeg.org/"><img src="https://img.shields.io/badge/FFmpeg-必需-007800.svg?logo=ffmpeg&logoColor=white" alt="需要 FFmpeg"></a>
+  <img src="https://img.shields.io/badge/隐私-只处理本机文件-34d399.svg" alt="只处理本机文件">
 </p>
 
----
+**subtitle-focus** 是一套 Agent Skill + 确定性 Python 渲染器。它先校对并锁定 SRT，再选择黄字重点、本机烧录字幕、从最终成片抽帧检查，最后登记唯一交付。
 
-## 这是什么
+## 真实成片效果
 
-**`subtitle-focus`** 是一套 Agent Skill + 小型 Python 渲染器。它把 SRT 切成短字幕条，只把真正有意义的词标成黄字，再用 Pillow 和 FFmpeg 烧进视频。
-
-Agent 决定 *标哪些词*。脚本决定 *画在哪、怎么画*。原 SRT 和原片只读，不会被覆盖，也不会上传。
-
----
-
-## 为什么要做
-
-剪映 / CapCut 能做黄白混排字幕，但样式锁在编辑器里。这套 skill 把同一套语法留在本机：白字、黄重点、灰色圆角条。
-
-- 中文和英文共用一条基线
-- 只有高亮词会放大
-- `C 组`、`AI 生成` 这类中英混排不拆开
-- 整词一次画出去，描边不会把字母糊在一起
-
----
-
-## 三道闸
+下面来自一个真实的 2160×3850 徽州鱼灯成片。截图直接取自最终视频，只裁出字幕区域。
 
 <p align="center">
-  <img src="./assets/readme/workflow-zh.svg" width="100%" alt="先对高亮词，再看样片，最后才烧全片">
+  <img src="./assets/readme/fish-lantern-cue-02.jpg" width="100%" alt="最终字幕中校正后的项目术语生成华纹以黄色显示">
 </p>
 
-1. **文字** — `plan` → 写 `highlight.json` → `apply` → `review`。用户确认词表，或按 cue 号改完之前，不渲。
-2. **样片** — 烧 10–15 秒试片，并补中文 / 英文 / 中英混排静帧。观感通过之前，不进全片。
-3. **全片** — 样片过了，再渲完整成片。
+<p align="center">
+  <img src="./assets/readme/fish-lantern-cue-05.jpg" width="100%" alt="Kimi K3 中英混排字幕保持同一基线">
+</p>
 
-Skill 禁止因为「我觉得静帧没问题」就跳闸。
+<p align="center">
+  <img src="./assets/readme/fish-lantern-cue-40.jpg" width="100%" alt="3D 被标成黄色重点的最终字幕">
+</p>
 
----
+中文和英文共用一条基线，只有重点词放大，整段文字一次绘制，不会因为逐字描边而产生重叠。
 
-## 安装成 Agent Skill
+## 为什么先锁定文字
+
+一个字改动，就可能让所有后续文件过期。上面的真实项目中，字幕 ID 2 和 ID 35 都必须使用项目术语 **生成华纹**。现在 SRT 锁和字幕计划会记录 SHA-256；只要 SRT 发生任何字节变化，旧计划、样片、成片和交付都会直接失效。
+
+<p align="center">
+  <img src="./assets/readme/fish-lantern-cue-35.jpg" width="100%" alt="最终视频中第二处生成华纹字幕">
+</p>
+
+## 五道确认闸
+
+<p align="center">
+  <img src="./assets/readme/workflow-zh.svg" width="100%" alt="校对锁定、高亮确认、样片、最终成片抽帧和交付登记五道流程">
+</p>
+
+1. **校对锁定**：逐条核对字幕，只执行用户确认的精确替换，然后按 SHA 锁定 SRT。
+2. **高亮确认**：只选择真正承载意义的词，并输出按字幕 ID 审核的表格。
+3. **样片**：没有参考图时保持默认高度 82%；收到参考截图时，生成项目独立的可配置样式。
+4. **抽帧检查**：从已经烧录字幕的最终成片中，抽取所有修改字幕、所有高亮字幕和首中尾画面。
+5. **交付登记**：用唯一 manifest 记录视频、SRT、计划、样式、修改、抽帧和 handoff 的路径与指纹。
+
+文字修改、高亮选择和样片都必须经过用户确认，不能由 Agent 自己跳闸。
+
+## 安装
 
 ```bash
 git clone https://github.com/manwithshit/subtitle-focus.git
 cd subtitle-focus
 
-# Grok
-ln -s "$(pwd)/skill" ~/.grok/skills/subtitle-focus
+# Codex / 兼容的 Agent 运行时
+ln -s "$(pwd)/skill" ~/.agents/skills/subtitle-focus
 
 # Claude Code
 ln -s "$(pwd)/skill" ~/.claude/skills/subtitle-focus
-
-# Codex / 其他运行时
-ln -s "$(pwd)/skill" ~/.agents/skills/subtitle-focus
 ```
 
-软链目录名必须和 `skill/SKILL.md` 里的 `name` 一致。
+软链目录名必须与 [skill/SKILL.md](./skill/SKILL.md) 里的 `name` 一致。
 
-### 依赖
+打包文件：[dist/subtitle-focus.skill](./dist/subtitle-focus.skill)。
+
+### 环境要求
 
 - Python 3.9+
 - 带 FreeType 的 Pillow
-- `ffmpeg` / `ffprobe`，且带 `overlay` 滤镜
+- 带 `overlay` 滤镜的 `ffmpeg` 与 `ffprobe`
 
 ```bash
 python3 skill/scripts/subtitle_focus.py doctor
 ```
 
----
-
 ## 第一次跑通
 
 ```bash
 SCRIPT=skill/scripts/subtitle_focus.py
-STYLE=skill/assets/default-style.json
+WORK=/abs/work
+
+python3 "$SCRIPT" proofread \
+  --srt /abs/input.srt \
+  --output "$WORK/text-review.md"
+
+# 听过音频、核对项目术语后，再写 corrections.json。
+python3 "$SCRIPT" correct \
+  --srt /abs/input.srt \
+  --corrections "$WORK/corrections.json" \
+  --output "$WORK/locked-text.srt" \
+  --review "$WORK/corrections-review.md"
+
+# 修改表经用户确认后才能执行。
+python3 "$SCRIPT" lock \
+  --srt "$WORK/locked-text.srt" \
+  --output "$WORK/srt-lock.json" \
+  --confirmed
 
 python3 "$SCRIPT" plan \
-  --srt /abs/input.srt \
-  --output /abs/work/caption_plan.json
+  --srt "$WORK/locked-text.srt" \
+  --lock "$WORK/srt-lock.json" \
+  --output "$WORK/caption-plan.json"
 
-# 写好 highlight.json 之后：
 python3 "$SCRIPT" apply \
-  --plan /abs/work/caption_plan.json \
-  --highlights /abs/work/highlight.json \
-  --output /abs/work/caption_plan.highlighted.json
+  --plan "$WORK/caption-plan.json" \
+  --highlights "$WORK/highlight.json" \
+  --output "$WORK/caption-plan.highlighted.json"
+
+python3 "$SCRIPT" validate \
+  --plan "$WORK/caption-plan.highlighted.json" \
+  --video /abs/input.mp4
 
 python3 "$SCRIPT" review \
-  --plan /abs/work/caption_plan.highlighted.json
+  --plan "$WORK/caption-plan.highlighted.json" \
+  --output "$WORK/highlight-review.md"
 ```
 
-把这张表给用户看。确认之后：
+把字幕修改表和高亮表交给用户确认。确认前不渲染。
+
+## 参考图样式
+
+默认值仍然是 `center_y_ratio: 0.82`。只有用户提交参考截图时，才为当前项目生成一个版本化样式，不改全局默认值。
+
+```bash
+python3 "$SCRIPT" style \
+  --base skill/assets/default-style.json \
+  --reference-image /abs/demo.png \
+  --center-y-ratio 0.73 \
+  --safe-width-ratio 0.76 \
+  --font-size-max 88 \
+  --output "$WORK/style-v1.json"
+
+python3 "$SCRIPT" preview \
+  --video /abs/input.mp4 \
+  --plan "$WORK/caption-plan.highlighted.json" \
+  --style "$WORK/style-v1.json" \
+  --cue 2 \
+  --output "$WORK/cue-2.png"
+```
+
+样式文件会保存参考图路径、SHA-256、尺寸、基础样式指纹和所有明确覆盖值。
+
+## 烧录、抽帧、交付
 
 ```bash
 python3 "$SCRIPT" render \
   --video /abs/input.mp4 \
-  --plan /abs/work/caption_plan.highlighted.json \
-  --style "$STYLE" \
-  --output /abs/work/edit/subtitle-focus-preview-v1.mp4 \
-  --start 20 --duration 12
+  --plan "$WORK/caption-plan.highlighted.json" \
+  --style "$WORK/style-v1.json" \
+  --output "$WORK/final-subtitled.mp4"
+
+python3 "$SCRIPT" frames \
+  --video "$WORK/final-subtitled.mp4" \
+  --already-burned \
+  --plan "$WORK/caption-plan.highlighted.json" \
+  --style "$WORK/style-v1.json" \
+  --corrections "$WORK/corrections.json" \
+  --output-dir "$WORK/review-frames"
+
+python3 "$SCRIPT" deliver \
+  --video "$WORK/final-subtitled.mp4" \
+  --srt "$WORK/locked-text.srt" \
+  --plan "$WORK/caption-plan.highlighted.json" \
+  --style "$WORK/style-v1.json" \
+  --corrections "$WORK/corrections.json" \
+  --review-dir "$WORK/review-frames" \
+  --output "$WORK/delivery.json"
 ```
 
-样片通过后，去掉 `--start` 和 `--duration` 再渲全片。输出用版本号，不要覆盖源文件。
+`frames` 会生成全尺寸 PNG、`contact-sheet.jpg`、`index.md` 和 `index.json`。如果修改字幕缺少抽帧，或者抽帧不是来自同一个最终成片 SHA，`deliver` 会拒绝交付。
 
-高亮 JSON：[highlight-schema.md](./skill/references/highlight-schema.md)  
-样式与画法：[visual-spec.md](./skill/references/visual-spec.md)
+可选 handoff 能复制最终 SRT、生成口播稿、复制已有发布文案；只有显式传入 `--copy-video` 才复制视频。已有文件永不覆盖。
 
----
+## 命令表
 
-## 默认样式
+| 命令 | 作用 |
+| --- | --- |
+| `doctor` | 检查 Pillow、字体、FFmpeg、FFprobe 和 overlay |
+| `proofread` | 输出逐条文字校对表，可用术语表标记疑似错误 |
+| `correct` | 只执行已确认的精确文字替换，不改时间轴 |
+| `lock` | 用内容指纹锁定确认后的 SRT |
+| `plan` | 把锁定 SRT 切成字幕段 |
+| `apply` / `review` | 应用并审核语义高亮 |
+| `style` / `preview` | 生成并检查版本化样式 |
+| `render` | 烧录字幕 |
+| `frames` | 从最终成片抽取修改与高亮证据 |
+| `deliver` | 登记唯一交付和可选 handoff |
 
-| 项 | 值 |
+结构与规则：
+
+- [SRT 文字锁](./skill/references/text-lock-schema.md)
+- [高亮计划](./skill/references/highlight-schema.md)
+- [参考图样式校准](./skill/references/style-calibration.md)
+- [视觉绘制合同](./skill/references/visual-spec.md)
+- [交付 manifest](./skill/references/delivery-schema.md)
+
+## 验证仓库
+
+```bash
+python3 -m unittest discover -s tests -v
+python3 -m py_compile skill/scripts/subtitle_focus.py
+```
+
+测试覆盖真实 FFmpeg 端到端烧录、旧 SRT 自动失效、参考图来源记录、修改字幕抽帧、最终成片 SHA 绑定和 handoff 生成。
+
+## 默认值与边界
+
+| 项 | 默认值 |
 | --- | --- |
 | 字体 | 系统苹方 SC Medium |
 | 正文字号 | 画面高度的 4.8% |
-| 高亮 | 正文 1.34 倍，`#FFD600`，深色描边 |
-| 底条 | `#505050`、69% 透明、28% 边距、剪映式 40% 圆角 |
+| 字幕中心 | 画面高度的 82% |
+| 高亮 | 正文 1.34 倍、`#FFD600`、深色描边 |
+| 底条 | `#505050`、69% 不透明度、28% 边距、40% 圆角 |
 
----
-
-## 边界
-
-- 原 SRT 和原片永远只读。
-- 渲染需要一款能画中文的字体。macOS 上会自动找苹方。
-- 接近 4K 的整片编码要几分钟；所以先用 10–15 秒样片抓布局问题。
-- 仓库不带示例成片。用你自己的本机文件。
-
----
+- 原 SRT 和原视频永远不覆盖。
+- 渲染需要能显示中文的字体。
+- 接近 4K 的完整编码需要时间，先用样片抓布局错误。
+- 仓库不包含源视频；README 只保留裁切后的最终效果截图。
+- 音频混音明确不属于这个 Skill。
 
 ## 许可
 

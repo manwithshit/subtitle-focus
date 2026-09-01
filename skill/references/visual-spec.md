@@ -9,6 +9,11 @@ Numbers live in [default-style.json](../assets/default-style.json). Copy that fi
 - Highlight: 1.34× body size, yellow fill, dark outline.
 - Body: white, no outline.
 - Bubble: gray `[80,80,80]` at alpha 176 (69% opacity). Padding 28% of the highlight size on both axes. Corner radius is Jianying-style `bubble_corner_percent` 40 — 40% of half the bubble height.
+- Default position: `center_y_ratio` 0.82. Keep this default when no reference demo is supplied.
+
+## Reference-demo overrides
+
+When the user provides a screenshot demo, create a versioned style with the `style` command and explicit measured overrides. Record the screenshot with `--reference-image`; do not edit `default-style.json` for one project. Preview with `--video` so the still uses the real target dimensions. See [style-calibration.md](style-calibration.md).
 
 ## Drawing contract
 

@@ -1,19 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
   <title id="title">subtitle-focus</title>
-  <desc id="desc">把 SRT 烧成黄字重点字幕条的 Agent Skill，不经过剪映或 CapCut。</desc>
+  <desc id="desc">从 SRT 校对锁定到高亮烧录、抽帧检查和交付登记的本机 Agent Skill。</desc>
   <rect width="1200" height="360" rx="28" fill="#141416"/>
-  <text x="56" y="78" fill="#8A8A8A" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="18" letter-spacing="3.2">AGENT SKILL</text>
+  <text x="56" y="76" fill="#8A8A8A" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" letter-spacing="3.2">本机 AGENT SKILL · SRT → 可验证成片</text>
   <text x="56" y="148" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="56" font-weight="700">subtitle-focus</text>
-  <text x="56" y="196" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="24">把 SRT 烧成黄字重点字幕条。</text>
-  <text x="56" y="232" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="24">不进剪映，不进 CapCut，本机 FFmpeg。</text>
-  <rect x="56" y="262" width="196" height="36" rx="10" fill="#2A2A2C"/>
-  <text x="154" y="286" text-anchor="middle" fill="#FFD600" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15">文字 → 样片 → 全片</text>
-  <rect x="690" y="92" width="454" height="88" rx="22" fill="#5A5A5C"/>
-  <text x="718" y="148" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="26" font-weight="600">它实际上是</text>
-  <text x="856" y="150" fill="#FFD600" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="34" font-weight="700">硬生生</text>
-  <text x="968" y="148" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="26" font-weight="600">地切过去的</text>
-  <rect x="690" y="198" width="454" height="88" rx="22" fill="#5A5A5C"/>
-  <text x="718" y="254" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="26" font-weight="600">找到这个</text>
-  <text x="838" y="254" fill="#FFD600" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="30" font-weight="700">prompts</text>
-  <text x="978" y="254" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="26" font-weight="600">文件夹</text>
+  <text x="56" y="198" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="24">先把字校对锁定，再做黄字重点。</text>
+  <text x="56" y="234" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="24">本机烧录、全量抽帧、带证据交付。</text>
+  <rect x="56" y="266" width="354" height="38" rx="10" fill="#2A2A2C"/>
+  <text x="233" y="291" text-anchor="middle" fill="#FFD600" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15">校对 → 锁定 → 样片 → 抽帧 → 交付</text>
+
+  <g transform="translate(690 54)">
+    <rect width="454" height="72" rx="20" fill="#242428"/>
+    <text x="28" y="44" fill="#FFD600" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="24" font-weight="700">SRT SHA</text>
+    <text x="148" y="44" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="23" font-weight="600">一变，旧计划立即失效</text>
+  </g>
+  <g transform="translate(690 144)">
+    <rect width="454" height="72" rx="20" fill="#242428"/>
+    <text x="28" y="44" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="23" font-weight="600">参考截图</text>
+    <text x="142" y="44" fill="#FFD600" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="23" font-weight="700">决定项目样式覆盖</text>
+  </g>
+  <g transform="translate(690 234)">
+    <rect width="454" height="72" rx="20" fill="#242428"/>
+    <text x="28" y="44" fill="#FFD600" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="23" font-weight="700">抽帧 QA</text>
+    <text x="144" y="44" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="23" font-weight="600">绑定最终成片指纹</text>
+  </g>
 </svg>

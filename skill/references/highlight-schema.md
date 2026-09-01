@@ -35,12 +35,19 @@ Rules:
 
 ## caption_plan.json
 
-The script owns this schema. Do not hand-edit timecodes or highlight offsets unless repairing a known error.
+The script owns this schema. Generate it only from a confirmed SRT lock. Do not hand-edit timecodes, source hashes, lock metadata, or highlight offsets.
 
 ```json
 {
   "version": 1,
   "source_srt": "/absolute/input.srt",
+  "source_sha256": "...",
+  "source_lock": {
+    "path": "/absolute/srt-lock.json",
+    "sha256": "...",
+    "confirmed": true,
+    "source_sha256": "..."
+  },
   "segments": [
     {
       "id": "15-1",
@@ -57,3 +64,5 @@ The script owns this schema. Do not hand-edit timecodes or highlight offsets unl
 ```
 
 `start` is inclusive and `end` is exclusive, using Python/JSON string character offsets. The renderer verifies that `text[start:end]` still equals the stored highlight text.
+
+Every downstream command also verifies the current source SRT SHA. If the SRT changes, discard the plan and regenerate it from a new confirmed lock.

@@ -3,138 +3,230 @@
 </p>
 
 <p align="center">
-  <img src="./assets/readme/hero.svg" width="100%" alt="subtitle-focus: burn an SRT as yellow-keyword caption cards without CapCut or Jianying">
+  <img src="./assets/readme/hero.svg" width="100%" alt="subtitle-focus: proofread, lock, highlight, burn, review, and register SRT subtitles locally">
 </p>
 
 <p align="center">
-  <a href="https://github.com/manwithshit/subtitle-focus/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.9%2B-3776AB.svg?logo=python&logoColor=white" alt="Python 3.9+"></a>
   <a href="https://ffmpeg.org/"><img src="https://img.shields.io/badge/FFmpeg-Required-007800.svg?logo=ffmpeg&logoColor=white" alt="FFmpeg required"></a>
   <img src="https://img.shields.io/badge/Privacy-Local_files_only-34d399.svg" alt="Local files only">
 </p>
 
----
+**subtitle-focus** is an Agent Skill plus a deterministic Python renderer. It reviews and locks SRT text, highlights meaning-bearing words, burns caption cards locally, extracts evidence from the final video, and registers one canonical delivery.
 
-## What this is
+## Real output
 
-**`subtitle-focus`** is an Agent Skill plus a small Python renderer. It turns an SRT into short caption cards, marks only the words that matter in yellow, and burns the result onto a video with Pillow and FFmpeg.
-
-The agent decides *which words matter*. The script decides *where and how they are drawn*. Source SRT and video stay read-only. Nothing is uploaded.
-
----
-
-## Why it exists
-
-CapCut / Jianying can do mixed-color captions, but the look is locked inside those editors. This skill keeps the same grammar — white body, yellow keyword, gray pill — as a repeatable local pipeline:
-
-- one shared baseline for Chinese and Latin
-- only highlighted text gets larger
-- mixed phrases such as `C 组` or `AI 生成` stay one run
-- words are drawn as whole strings so outlines do not overlap
-
----
-
-## Three gates
+These are cropped frames from a real 2160×3850 fish-lantern production. The screenshots are taken from the final rendered video; only the caption area is cropped.
 
 <p align="center">
-  <img src="./assets/readme/workflow.svg" width="100%" alt="Confirm highlight words, review a short sample, then burn the full video">
+  <img src="./assets/readme/fish-lantern-cue-02.jpg" width="100%" alt="Final caption showing the corrected project term 生成华纹 in yellow">
 </p>
 
-1. **Text** — `plan` → draft `highlight.json` → `apply` → `review`. Stop until the user confirms the table, or sends cue-level edits.
-2. **Sample** — burn a 10–15 second clip plus stills for CJK, Latin, and mixed highlights. Stop until the look is accepted.
-3. **Full cut** — render the whole video only after the sample passes.
+<p align="center">
+  <img src="./assets/readme/fish-lantern-cue-05.jpg" width="100%" alt="Mixed Chinese and Latin caption with Kimi K3 highlighted on one baseline">
+</p>
 
-The skill forbids skipping a gate because the stills “look fine” to the agent.
+<p align="center">
+  <img src="./assets/readme/fish-lantern-cue-40.jpg" width="100%" alt="Final caption with 3D highlighted in yellow">
+</p>
 
----
+The renderer keeps Chinese and Latin on one baseline, enlarges only highlighted runs, and draws each run as a whole string so outlines do not collide.
 
-## Install as an Agent Skill
+## Why the workflow locks text first
+
+A one-word correction can invalidate every derived artifact. In the production above, both cue 2 and cue 35 needed the exact term **生成华纹**. The current workflow stores the SRT SHA-256 in the lock and caption plan; any byte change makes stale plans, samples, renders, and deliveries fail closed.
+
+<p align="center">
+  <img src="./assets/readme/fish-lantern-cue-35.jpg" width="100%" alt="Second corrected occurrence of 生成华纹 in the final video">
+</p>
+
+## Five gates
+
+<p align="center">
+  <img src="./assets/readme/workflow.svg" width="100%" alt="Five gates: proof and lock, highlights, sample, final-video frame QA, and delivery">
+</p>
+
+1. **Proof + lock** — review every cue, apply only confirmed exact-text corrections, then lock the SRT by hash.
+2. **Highlights** — choose meaning-bearing terms and show a cue-level review table.
+3. **Sample** — keep the default vertical position at 82%, or derive a versioned override from a supplied reference screenshot.
+4. **Frame QA** — extract every corrected cue, every highlighted segment, and entry/middle/exit frames from the already-burned final video.
+5. **Delivery** — write one manifest with video, SRT, plan, style, correction, review, and handoff hashes.
+
+The Skill stops for human approval after text corrections, highlight selection, and the short sample.
+
+## Install
 
 ```bash
 git clone https://github.com/manwithshit/subtitle-focus.git
 cd subtitle-focus
 
-# Grok
-ln -s "$(pwd)/skill" ~/.grok/skills/subtitle-focus
+# Codex / compatible agent runtimes
+ln -s "$(pwd)/skill" ~/.agents/skills/subtitle-focus
 
 # Claude Code
 ln -s "$(pwd)/skill" ~/.claude/skills/subtitle-focus
-
-# Codex / other agent runtimes
-ln -s "$(pwd)/skill" ~/.agents/skills/subtitle-focus
 ```
 
-The symlink name must match the `name` field in `skill/SKILL.md`.
+The symlink name must match the `name` in [skill/SKILL.md](./skill/SKILL.md).
 
-### Prerequisites
+Packaged artifact: [dist/subtitle-focus.skill](./dist/subtitle-focus.skill).
+
+### Requirements
 
 - Python 3.9+
 - Pillow with FreeType
-- `ffmpeg` and `ffprobe`, with the `overlay` filter
+- `ffmpeg` and `ffprobe` with the `overlay` filter
 
 ```bash
 python3 skill/scripts/subtitle_focus.py doctor
 ```
 
----
-
 ## First successful run
 
 ```bash
 SCRIPT=skill/scripts/subtitle_focus.py
-STYLE=skill/assets/default-style.json
+WORK=/abs/work
+
+python3 "$SCRIPT" proofread \
+  --srt /abs/input.srt \
+  --output "$WORK/text-review.md"
+
+# Draft corrections.json only after listening and project-term review.
+python3 "$SCRIPT" correct \
+  --srt /abs/input.srt \
+  --corrections "$WORK/corrections.json" \
+  --output "$WORK/locked-text.srt" \
+  --review "$WORK/corrections-review.md"
+
+# Run only after the user confirms the correction table.
+python3 "$SCRIPT" lock \
+  --srt "$WORK/locked-text.srt" \
+  --output "$WORK/srt-lock.json" \
+  --confirmed
 
 python3 "$SCRIPT" plan \
-  --srt /abs/input.srt \
-  --output /abs/work/caption_plan.json
+  --srt "$WORK/locked-text.srt" \
+  --lock "$WORK/srt-lock.json" \
+  --output "$WORK/caption-plan.json"
 
-# draft highlight.json, then:
 python3 "$SCRIPT" apply \
-  --plan /abs/work/caption_plan.json \
-  --highlights /abs/work/highlight.json \
-  --output /abs/work/caption_plan.highlighted.json
+  --plan "$WORK/caption-plan.json" \
+  --highlights "$WORK/highlight.json" \
+  --output "$WORK/caption-plan.highlighted.json"
+
+python3 "$SCRIPT" validate \
+  --plan "$WORK/caption-plan.highlighted.json" \
+  --video /abs/input.mp4
 
 python3 "$SCRIPT" review \
-  --plan /abs/work/caption_plan.highlighted.json
+  --plan "$WORK/caption-plan.highlighted.json" \
+  --output "$WORK/highlight-review.md"
 ```
 
-Show that table to the human. After they confirm:
+Show the correction and highlight tables to the user. Do not render before approval.
+
+## Reference-demo layout
+
+The bundled default remains `center_y_ratio: 0.82`. A supplied demo screenshot creates a project-specific, versioned style instead of changing that default.
+
+```bash
+python3 "$SCRIPT" style \
+  --base skill/assets/default-style.json \
+  --reference-image /abs/demo.png \
+  --center-y-ratio 0.73 \
+  --safe-width-ratio 0.76 \
+  --font-size-max 88 \
+  --output "$WORK/style-v1.json"
+
+python3 "$SCRIPT" preview \
+  --video /abs/input.mp4 \
+  --plan "$WORK/caption-plan.highlighted.json" \
+  --style "$WORK/style-v1.json" \
+  --cue 2 \
+  --output "$WORK/cue-2.png"
+```
+
+The style stores the reference image path, SHA-256, dimensions, base-style SHA, and explicit overrides.
+
+## Render, review, deliver
 
 ```bash
 python3 "$SCRIPT" render \
   --video /abs/input.mp4 \
-  --plan /abs/work/caption_plan.highlighted.json \
-  --style "$STYLE" \
-  --output /abs/work/edit/subtitle-focus-preview-v1.mp4 \
-  --start 20 --duration 12
+  --plan "$WORK/caption-plan.highlighted.json" \
+  --style "$WORK/style-v1.json" \
+  --output "$WORK/final-subtitled.mp4"
+
+python3 "$SCRIPT" frames \
+  --video "$WORK/final-subtitled.mp4" \
+  --already-burned \
+  --plan "$WORK/caption-plan.highlighted.json" \
+  --style "$WORK/style-v1.json" \
+  --corrections "$WORK/corrections.json" \
+  --output-dir "$WORK/review-frames"
+
+python3 "$SCRIPT" deliver \
+  --video "$WORK/final-subtitled.mp4" \
+  --srt "$WORK/locked-text.srt" \
+  --plan "$WORK/caption-plan.highlighted.json" \
+  --style "$WORK/style-v1.json" \
+  --corrections "$WORK/corrections.json" \
+  --review-dir "$WORK/review-frames" \
+  --output "$WORK/delivery.json"
 ```
 
-After the sample is accepted, drop `--start` and `--duration` for the full cut. Version every output. Never overwrite the source.
+`frames` produces full-resolution PNGs, `contact-sheet.jpg`, `index.md`, and `index.json`. `deliver` rejects corrected cues without frames and rejects review evidence from a different final-video SHA.
 
-Highlight JSON schema: [`skill/references/highlight-schema.md`](./skill/references/highlight-schema.md).  
-Visual numbers and drawing contract: [`skill/references/visual-spec.md`](./skill/references/visual-spec.md).
+Optional handoff can copy the final SRT, generate a transcript, copy an existing publishing document, and copy the video only when `--copy-video` is explicit. Existing files are never overwritten.
 
----
+## Commands
 
-## Defaults
+| Command | Job |
+| --- | --- |
+| `doctor` | Check Pillow, fonts, FFmpeg, FFprobe, and overlay support |
+| `proofread` | Build a cue-by-cue text review with optional glossary flags |
+| `correct` | Apply confirmed exact-text changes without changing timecodes |
+| `lock` | Freeze the approved SRT by hash |
+| `plan` | Segment a locked SRT |
+| `apply` / `review` | Apply and review semantic highlights |
+| `style` / `preview` | Derive and inspect a versioned layout |
+| `render` | Burn the subtitle overlay |
+| `frames` | Extract final-video correction and highlight evidence |
+| `deliver` | Register the one authoritative delivery and optional handoff |
 
-| Token | Value |
+Schemas and visual rules:
+
+- [SRT text lock](./skill/references/text-lock-schema.md)
+- [Highlight plan](./skill/references/highlight-schema.md)
+- [Reference-demo calibration](./skill/references/style-calibration.md)
+- [Visual contract](./skill/references/visual-spec.md)
+- [Delivery manifest](./skill/references/delivery-schema.md)
+
+## Verify the repository
+
+```bash
+python3 -m unittest discover -s tests -v
+python3 -m py_compile skill/scripts/subtitle_focus.py
+```
+
+The test suite includes a real FFmpeg end-to-end render, stale-SRT rejection, reference-demo style provenance, corrected-cue frame coverage, final-video SHA binding, and handoff generation.
+
+## Defaults and limits
+
+| Token | Default |
 | --- | --- |
 | Font | System PingFang SC Medium |
 | Body size | 4.8% of frame height |
+| Caption center | 82% of frame height |
 | Highlight | 1.34× body, `#FFD600`, dark outline |
-| Bubble | `#505050` at 69% opacity, 28% padding, Jianying-style 40% corner |
-
----
-
-## Limits
+| Bubble | `#505050`, 69% opacity, 28% padding, 40% corner |
 
 - Source SRT and video are never replaced.
-- The renderer needs a CJK-capable font. On macOS it discovers PingFang automatically.
-- Full-length encodes of 4K-class files take a few minutes; the 10–15s sample exists so you do not find layout bugs after that wait.
-- This repository does not include example footage. Bring your own local files.
-
----
+- The renderer needs a CJK-capable font.
+- Full-length 4K-class encodes take time; the sample gate exists to catch layout errors first.
+- The repository ships no source footage. The README contains cropped final-output frames only.
+- Audio mixing is intentionally outside this Skill.
 
 ## License
 

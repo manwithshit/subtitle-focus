@@ -1,26 +1,47 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="220" viewBox="0 0 1200 220" role="img" aria-labelledby="title desc">
-  <title id="title">Three confirmation gates</title>
-  <desc id="desc">Gate 1 confirm highlight words, gate 2 review a short sample, gate 3 burn the full video.</desc>
-  <rect width="1200" height="220" rx="28" fill="#141416"/>
-  <g transform="translate(40 36)">
-    <rect width="340" height="148" rx="20" fill="#1E1E22"/>
-    <text x="28" y="40" fill="#8A8A8A" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18">01</text>
-    <text x="28" y="84" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="28" font-weight="700">Text</text>
-    <text x="28" y="120" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="18">Review the highlight table.</text>
-    <text x="28" y="146" fill="#FFD600" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="16">Stop until the user confirms.</text>
-  </g>
-  <g transform="translate(430 36)">
-    <rect width="340" height="148" rx="20" fill="#1E1E22"/>
-    <text x="28" y="40" fill="#8A8A8A" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18">02</text>
-    <text x="28" y="84" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="28" font-weight="700">Sample</text>
-    <text x="28" y="120" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="18">Burn a 10–15s review clip.</text>
-    <text x="28" y="146" fill="#FFD600" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="16">Stop until the look is right.</text>
-  </g>
-  <g transform="translate(820 36)">
-    <rect width="340" height="148" rx="20" fill="#1E1E22"/>
-    <text x="28" y="40" fill="#8A8A8A" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18">03</text>
-    <text x="28" y="84" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="28" font-weight="700">Full cut</text>
-    <text x="28" y="120" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="18">Render the whole video.</text>
-    <text x="28" y="146" fill="#FFD600" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="16">Only after the sample passes.</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="260" viewBox="0 0 1200 260" role="img" aria-labelledby="title desc">
+  <title id="title">Five subtitle delivery gates</title>
+  <desc id="desc">Proofread and lock the SRT, confirm highlights, approve a sample, inspect final-video frames, then register one delivery.</desc>
+  <rect width="1200" height="260" rx="28" fill="#141416"/>
+  <g font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif">
+    <g transform="translate(40 36)">
+      <rect width="208" height="188" rx="18" fill="#202024"/>
+      <text x="22" y="34" fill="#8A8A8A" font-family="ui-monospace, monospace" font-size="17">01</text>
+      <text x="22" y="76" fill="#FFFFFF" font-size="25" font-weight="700">Proof + lock</text>
+      <text x="22" y="112" fill="#C8C8C8" font-size="17">Review every cue.</text>
+      <text x="22" y="142" fill="#C8C8C8" font-size="17">Confirm exact edits.</text>
+      <text x="22" y="172" fill="#FFD600" font-size="16">Hash invalidates stale work.</text>
+    </g>
+    <g transform="translate(268 36)">
+      <rect width="208" height="188" rx="18" fill="#202024"/>
+      <text x="22" y="34" fill="#8A8A8A" font-family="ui-monospace, monospace" font-size="17">02</text>
+      <text x="22" y="76" fill="#FFFFFF" font-size="25" font-weight="700">Highlights</text>
+      <text x="22" y="112" fill="#C8C8C8" font-size="17">Meaning-bearing terms.</text>
+      <text x="22" y="142" fill="#C8C8C8" font-size="17">Cue-level review table.</text>
+      <text x="22" y="172" fill="#FFD600" font-size="16">Wait for approval.</text>
+    </g>
+    <g transform="translate(496 36)">
+      <rect width="208" height="188" rx="18" fill="#202024"/>
+      <text x="22" y="34" fill="#8A8A8A" font-family="ui-monospace, monospace" font-size="17">03</text>
+      <text x="22" y="76" fill="#FFFFFF" font-size="25" font-weight="700">Sample</text>
+      <text x="22" y="112" fill="#C8C8C8" font-size="17">Default height: 82%.</text>
+      <text x="22" y="142" fill="#C8C8C8" font-size="17">Reference-aware override.</text>
+      <text x="22" y="172" fill="#FFD600" font-size="16">Use real video dimensions.</text>
+    </g>
+    <g transform="translate(724 36)">
+      <rect width="208" height="188" rx="18" fill="#202024"/>
+      <text x="22" y="34" fill="#8A8A8A" font-family="ui-monospace, monospace" font-size="17">04</text>
+      <text x="22" y="76" fill="#FFFFFF" font-size="25" font-weight="700">Frame QA</text>
+      <text x="22" y="112" fill="#C8C8C8" font-size="17">Corrected + highlighted.</text>
+      <text x="22" y="142" fill="#C8C8C8" font-size="17">Entry, middle, exit.</text>
+      <text x="22" y="172" fill="#FFD600" font-size="16">Bound to final video SHA.</text>
+    </g>
+    <g transform="translate(952 36)">
+      <rect width="208" height="188" rx="18" fill="#202024"/>
+      <text x="22" y="34" fill="#8A8A8A" font-family="ui-monospace, monospace" font-size="17">05</text>
+      <text x="22" y="76" fill="#FFFFFF" font-size="25" font-weight="700">Delivery</text>
+      <text x="22" y="112" fill="#C8C8C8" font-size="17">One manifest.</text>
+      <text x="22" y="142" fill="#C8C8C8" font-size="17">SRT + transcript handoff.</text>
+      <text x="22" y="172" fill="#FFD600" font-size="16">No filename guesswork.</text>
+    </g>
   </g>
 </svg>

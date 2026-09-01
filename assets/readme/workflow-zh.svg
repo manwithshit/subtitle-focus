@@ -1,26 +1,47 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="220" viewBox="0 0 1200 220" role="img" aria-labelledby="title desc">
-  <title id="title">三道确认闸</title>
-  <desc id="desc">先确认高亮词，再看 10 到 15 秒样片，通过后才烧全片。</desc>
-  <rect width="1200" height="220" rx="28" fill="#141416"/>
-  <g transform="translate(40 36)">
-    <rect width="340" height="148" rx="20" fill="#1E1E22"/>
-    <text x="28" y="40" fill="#8A8A8A" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18">01</text>
-    <text x="28" y="84" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="28" font-weight="700">文字</text>
-    <text x="28" y="120" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="18">先对高亮词表。</text>
-    <text x="28" y="146" fill="#FFD600" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="16">用户点头之前不渲。</text>
-  </g>
-  <g transform="translate(430 36)">
-    <rect width="340" height="148" rx="20" fill="#1E1E22"/>
-    <text x="28" y="40" fill="#8A8A8A" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18">02</text>
-    <text x="28" y="84" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="28" font-weight="700">样片</text>
-    <text x="28" y="120" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="18">烧 10–15 秒试片。</text>
-    <text x="28" y="146" fill="#FFD600" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="16">观感通过之前不进全片。</text>
-  </g>
-  <g transform="translate(820 36)">
-    <rect width="340" height="148" rx="20" fill="#1E1E22"/>
-    <text x="28" y="40" fill="#8A8A8A" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18">03</text>
-    <text x="28" y="84" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="28" font-weight="700">全片</text>
-    <text x="28" y="120" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="18">再烧完整成片。</text>
-    <text x="28" y="146" fill="#FFD600" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="16">样片过了才动手。</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="260" viewBox="0 0 1200 260" role="img" aria-labelledby="title desc">
+  <title id="title">五道字幕交付闸</title>
+  <desc id="desc">先校对并锁定 SRT，再确认高亮、验收样片、检查最终成片抽帧，最后登记唯一交付。</desc>
+  <rect width="1200" height="260" rx="28" fill="#141416"/>
+  <g font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif">
+    <g transform="translate(40 36)">
+      <rect width="208" height="188" rx="18" fill="#202024"/>
+      <text x="22" y="34" fill="#8A8A8A" font-family="ui-monospace, monospace" font-size="17">01</text>
+      <text x="22" y="76" fill="#FFFFFF" font-size="25" font-weight="700">校对锁定</text>
+      <text x="22" y="112" fill="#C8C8C8" font-size="17">逐条核对错字。</text>
+      <text x="22" y="142" fill="#C8C8C8" font-size="17">确认精确修改。</text>
+      <text x="22" y="172" fill="#FFD600" font-size="16">SHA 变化即全部失效。</text>
+    </g>
+    <g transform="translate(268 36)">
+      <rect width="208" height="188" rx="18" fill="#202024"/>
+      <text x="22" y="34" fill="#8A8A8A" font-family="ui-monospace, monospace" font-size="17">02</text>
+      <text x="22" y="76" fill="#FFFFFF" font-size="25" font-weight="700">高亮确认</text>
+      <text x="22" y="112" fill="#C8C8C8" font-size="17">只标语义重点。</text>
+      <text x="22" y="142" fill="#C8C8C8" font-size="17">按字幕 ID 审核。</text>
+      <text x="22" y="172" fill="#FFD600" font-size="16">用户确认前不渲染。</text>
+    </g>
+    <g transform="translate(496 36)">
+      <rect width="208" height="188" rx="18" fill="#202024"/>
+      <text x="22" y="34" fill="#8A8A8A" font-family="ui-monospace, monospace" font-size="17">03</text>
+      <text x="22" y="76" fill="#FFFFFF" font-size="25" font-weight="700">样片</text>
+      <text x="22" y="112" fill="#C8C8C8" font-size="17">默认高度保持 82%。</text>
+      <text x="22" y="142" fill="#C8C8C8" font-size="17">参考图可配置覆盖。</text>
+      <text x="22" y="172" fill="#FFD600" font-size="16">使用真实视频尺寸。</text>
+    </g>
+    <g transform="translate(724 36)">
+      <rect width="208" height="188" rx="18" fill="#202024"/>
+      <text x="22" y="34" fill="#8A8A8A" font-family="ui-monospace, monospace" font-size="17">04</text>
+      <text x="22" y="76" fill="#FFFFFF" font-size="25" font-weight="700">抽帧检查</text>
+      <text x="22" y="112" fill="#C8C8C8" font-size="17">修改项与高亮项全查。</text>
+      <text x="22" y="142" fill="#C8C8C8" font-size="17">首帧、中段、尾帧。</text>
+      <text x="22" y="172" fill="#FFD600" font-size="16">绑定最终成片 SHA。</text>
+    </g>
+    <g transform="translate(952 36)">
+      <rect width="208" height="188" rx="18" fill="#202024"/>
+      <text x="22" y="34" fill="#8A8A8A" font-family="ui-monospace, monospace" font-size="17">05</text>
+      <text x="22" y="76" fill="#FFFFFF" font-size="25" font-weight="700">交付登记</text>
+      <text x="22" y="112" fill="#C8C8C8" font-size="17">唯一 manifest。</text>
+      <text x="22" y="142" fill="#C8C8C8" font-size="17">SRT 与口播稿移交。</text>
+      <text x="22" y="172" fill="#FFD600" font-size="16">不再靠文件名猜版本。</text>
+    </g>
   </g>
 </svg>

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import hashlib
 import json
 import math
@@ -16,7 +17,7 @@ import unicodedata
 from pathlib import Path
 from typing import Any, Iterable
 
-from PIL import Image, ImageDraw, ImageFont, features
+from PIL import Image, ImageDraw, ImageFont, ImageOps, features
 
 
 TIMECODE_RE = re.compile(
@@ -55,6 +56,18 @@ def write_json(path: Path, data: dict[str, Any]) -> None:
 def refuse_existing(path: Path) -> None:
     if path.exists() or path.is_symlink():
         raise FocusError(f"Refusing to overwrite existing output: {path}")
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
 def ms_from_timecode(value: str) -> int:
@@ -97,6 +110,78 @@ def parse_srt(path: Path) -> list[dict[str, Any]]:
     if not cues:
         raise FocusError(f"No subtitle cues found in {path}")
     return cues
+
+
+def format_timecode(ms: int) -> str:
+    hours, remainder = divmod(int(ms), 3_600_000)
+    minutes, remainder = divmod(remainder, 60_000)
+    seconds, millis = divmod(remainder, 1000)
+    return f"{hours:02d}:{minutes:02d}:{seconds:02d},{millis:03d}"
+
+
+def serialize_srt(cues: list[dict[str, Any]]) -> str:
+    blocks = []
+    for cue in cues:
+        blocks.append(
+            "\n".join(
+                [
+                    str(cue["cue_id"]),
+                    f'{format_timecode(cue["start_ms"])} --> {format_timecode(cue["end_ms"])}',
+                    cue["text"],
+                ]
+            )
+        )
+    return "\n\n".join(blocks) + "\n"
+
+
+def source_snapshot(path: Path) -> dict[str, Any]:
+    cues = parse_srt(path)
+    return {
+        "path": str(path),
+        "sha256": sha256_file(path),
+        "cue_count": len(cues),
+        "first_start_ms": cues[0]["start_ms"],
+        "last_end_ms": cues[-1]["end_ms"],
+    }
+
+
+def verify_lock(lock: dict[str, Any], srt: Path) -> dict[str, Any]:
+    if lock.get("version") != 1 or lock.get("kind") != "subtitle-focus-srt-lock":
+        raise FocusError("Invalid SRT lock manifest")
+    if not lock.get("confirmed"):
+        raise FocusError("SRT lock is not human-confirmed")
+    actual = source_snapshot(srt)
+    expected = lock.get("source", {})
+    for key in ("sha256", "cue_count", "first_start_ms", "last_end_ms"):
+        if expected.get(key) != actual.get(key):
+            raise FocusError(f"SRT lock mismatch for {key}: expected {expected.get(key)!r}, got {actual.get(key)!r}")
+    return actual
+
+
+def verify_plan_source(plan: dict[str, Any], srt_override: Path | None = None) -> dict[str, Any]:
+    source_value = str(srt_override or plan.get("source_srt", "")).strip()
+    if not source_value:
+        raise FocusError("Caption plan has no source_srt")
+    source = Path(source_value).expanduser().resolve()
+    if not source.is_file():
+        raise FocusError(f"Caption plan source SRT does not exist: {source}")
+    actual = source_snapshot(source)
+    expected_sha = str(plan.get("source_sha256", ""))
+    if not expected_sha:
+        raise FocusError("Caption plan has no source_sha256; regenerate it from a locked SRT")
+    if actual["sha256"] != expected_sha:
+        raise FocusError(
+            "Source SRT changed after planning; discard the stale plan and regenerate from the confirmed lock"
+        )
+    lock_info = plan.get("source_lock")
+    if not isinstance(lock_info, dict) or not lock_info.get("confirmed"):
+        raise FocusError("Caption plan is not tied to a confirmed SRT lock")
+    if lock_info.get("source_sha256") != actual["sha256"]:
+        raise FocusError("Caption plan lock SHA does not match the current SRT")
+    expected_cues = int(plan.get("statistics", {}).get("cue_count", 0))
+    if expected_cues and actual["cue_count"] != expected_cues:
+        raise FocusError("Caption plan cue count no longer matches the current SRT")
+    return actual
 
 
 def char_units(ch: str) -> float:
@@ -213,8 +298,179 @@ def allocate_times(start_ms: int, end_ms: int, parts: list[str]) -> list[tuple[i
     return list(zip(boundaries[:-1], boundaries[1:]))
 
 
+def markdown_cell(value: Any) -> str:
+    return str(value).replace("|", "\\|").replace("\n", " ")
+
+
+def command_proofread(args: argparse.Namespace) -> None:
+    srt = Path(args.srt).expanduser().resolve()
+    cues = parse_srt(srt)
+    glossary: dict[str, Any] = {"version": 1, "forbidden_terms": []}
+    if args.glossary:
+        glossary = load_json(Path(args.glossary).expanduser().resolve())
+        if glossary.get("version") != 1:
+            raise FocusError("Only glossary schema version 1 is supported")
+    forbidden = glossary.get("forbidden_terms", [])
+    if not isinstance(forbidden, list):
+        raise FocusError("glossary forbidden_terms must be an array")
+    lines = [
+        "# SRT 文字校对",
+        "",
+        f"- 文件：`{srt}`",
+        f"- SHA-256：`{sha256_file(srt)}`",
+        f"- 字幕：{len(cues)} 条",
+        "",
+        "| ID | 时间 | 原文 | 提示 |",
+        "|---:|---|---|---|",
+    ]
+    flagged = 0
+    for cue in cues:
+        notes = []
+        for item in forbidden:
+            term = str(item.get("text", ""))
+            if term and term in cue["text"]:
+                suggestion = str(item.get("suggest", "")).strip()
+                reason = str(item.get("reason", "")).strip()
+                note = f"`{term}`"
+                if suggestion:
+                    note += f" → `{suggestion}`"
+                if reason:
+                    note += f"（{reason}）"
+                notes.append(note)
+        if notes:
+            flagged += 1
+        lines.append(
+            f'| {cue["cue_id"]} | {ms_clock(cue["start_ms"])}–{ms_clock(cue["end_ms"])} '
+            f'| {markdown_cell(cue["text"])} | {markdown_cell("；".join(notes))} |'
+        )
+    lines.extend(
+        [
+            "",
+            f"标记 {flagged}/{len(cues)} 条。Agent 必须结合音频、项目术语和用户反馈逐条校对；脚本不会擅自改字。",
+        ]
+    )
+    output = Path(args.output).expanduser().resolve()
+    refuse_existing(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(json.dumps({"output": str(output), "cues": len(cues), "flagged": flagged}, ensure_ascii=False))
+
+
+def replace_occurrence(text: str, find: str, replacement: str, occurrence: Any) -> tuple[str, int]:
+    matches = [match.start() for match in re.finditer(re.escape(find), text)]
+    if not matches:
+        return text, 0
+    if occurrence == "all":
+        return text.replace(find, replacement), len(matches)
+    try:
+        selected = int(occurrence)
+    except (TypeError, ValueError) as exc:
+        raise FocusError(f"Invalid correction occurrence: {occurrence!r}") from exc
+    if selected < 1 or selected > len(matches):
+        return text, 0
+    start = matches[selected - 1]
+    end = start + len(find)
+    return text[:start] + replacement + text[end:], 1
+
+
+def command_correct(args: argparse.Namespace) -> None:
+    srt = Path(args.srt).expanduser().resolve()
+    cues = parse_srt(srt)
+    corrections_path = Path(args.corrections).expanduser().resolve()
+    corrections = load_json(corrections_path)
+    if corrections.get("version") != 1 or not isinstance(corrections.get("items"), list):
+        raise FocusError("Corrections must use schema version 1 with an items array")
+    by_id = {int(cue["cue_id"]): cue for cue in cues}
+    changes: list[dict[str, Any]] = []
+    for index, item in enumerate(corrections["items"], start=1):
+        cue_id = int(item.get("cue_id", -1))
+        if cue_id not in by_id:
+            raise FocusError(f"Correction {index} targets missing cue {cue_id}")
+        find = str(item.get("find", ""))
+        replacement = str(item.get("replace", ""))
+        if not find:
+            raise FocusError(f"Correction {index} has an empty find string")
+        if find == replacement:
+            raise FocusError(f"Correction {index} does not change the text")
+        cue = by_id[cue_id]
+        before = cue["text"]
+        after, count = replace_occurrence(before, find, replacement, item.get("occurrence", 1))
+        if count == 0:
+            raise FocusError(f'Correction {index} cannot find "{find}" in cue {cue_id}')
+        cue["text"] = after
+        changes.append(
+            {
+                "cue_id": cue_id,
+                "start_ms": cue["start_ms"],
+                "end_ms": cue["end_ms"],
+                "before": before,
+                "after": after,
+                "find": find,
+                "replace": replacement,
+                "occurrences": count,
+                "reason": str(item.get("reason", "")),
+            }
+        )
+    output = Path(args.output).expanduser().resolve()
+    review = Path(args.review).expanduser().resolve()
+    refuse_existing(output)
+    refuse_existing(review)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    review.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(serialize_srt(cues), encoding="utf-8")
+    lines = [
+        "# SRT 修改确认",
+        "",
+        f"- 原文件：`{srt}`",
+        f"- 新文件：`{output}`",
+        f"- 时间轴：未修改",
+        "",
+        "| ID | 时间 | 修改前 | 修改后 | 原因 |",
+        "|---:|---|---|---|---|",
+    ]
+    for change in changes:
+        lines.append(
+            f'| {change["cue_id"]} | {ms_clock(change["start_ms"])} '
+            f'| {markdown_cell(change["before"])} | {markdown_cell(change["after"])} '
+            f'| {markdown_cell(change["reason"])} |'
+        )
+    review.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(
+        json.dumps(
+            {
+                "output": str(output),
+                "review": str(review),
+                "changed_cue_ids": sorted({item["cue_id"] for item in changes}),
+                "source_sha256": sha256_file(srt),
+                "output_sha256": sha256_file(output),
+            },
+            ensure_ascii=False,
+        )
+    )
+
+
+def command_lock(args: argparse.Namespace) -> None:
+    if not args.confirmed:
+        raise FocusError("Refusing to lock SRT without --confirmed after human text review")
+    srt = Path(args.srt).expanduser().resolve()
+    snapshot = source_snapshot(srt)
+    output = Path(args.output).expanduser().resolve()
+    manifest = {
+        "version": 1,
+        "kind": "subtitle-focus-srt-lock",
+        "confirmed": True,
+        "locked_at": utc_now(),
+        "source": snapshot,
+    }
+    write_json(output, manifest)
+    print(json.dumps({"output": str(output), **snapshot}, ensure_ascii=False))
+
+
 def command_plan(args: argparse.Namespace) -> None:
     srt = Path(args.srt).expanduser().resolve()
+    lock_path = Path(args.lock).expanduser().resolve()
+    lock = load_json(lock_path)
+    snapshot = verify_lock(lock, srt)
     cues = parse_srt(srt)
     segments: list[dict[str, Any]] = []
     for cue in cues:
@@ -231,11 +487,16 @@ def command_plan(args: argparse.Namespace) -> None:
                     "highlights": [],
                 }
             )
-    digest = hashlib.sha256(srt.read_bytes()).hexdigest()
     plan = {
         "version": 1,
         "source_srt": str(srt),
-        "source_sha256": digest,
+        "source_sha256": snapshot["sha256"],
+        "source_lock": {
+            "path": str(lock_path),
+            "sha256": sha256_file(lock_path),
+            "confirmed": True,
+            "source_sha256": snapshot["sha256"],
+        },
         "segmentation": {"max_chars": args.max_chars, "method": "semantic-punctuation-v1"},
         "statistics": {"cue_count": len(cues), "segment_count": len(segments)},
         "segments": segments,
@@ -264,6 +525,7 @@ def add_range(segment: dict[str, Any], start: int, end: int) -> None:
 
 def command_apply(args: argparse.Namespace) -> None:
     plan = load_json(Path(args.plan).expanduser().resolve())
+    verify_plan_source(plan)
     choices = load_json(Path(args.highlights).expanduser().resolve())
     if plan.get("version") != 1 or choices.get("version") != 1:
         raise FocusError("Only schema version 1 is supported")
@@ -336,13 +598,19 @@ def validate_plan(plan: dict[str, Any]) -> list[str]:
     if not isinstance(segments, list) or not segments:
         return errors + ["segments must be a non-empty array"]
     ids: set[str] = set()
+    previous_start = -1
     for idx, segment in enumerate(segments, start=1):
         label = str(segment.get("id", idx))
         if label in ids:
             errors.append(f"duplicate segment id {label}")
         ids.add(label)
-        if int(segment.get("end_ms", 0)) <= int(segment.get("start_ms", 0)):
+        start_ms = int(segment.get("start_ms", 0))
+        end_ms = int(segment.get("end_ms", 0))
+        if end_ms <= start_ms:
             errors.append(f"segment {label} has invalid timing")
+        if start_ms < previous_start:
+            errors.append(f"segment {label} is out of chronological order")
+        previous_start = start_ms
         text = segment.get("text")
         if not isinstance(text, str) or not text:
             errors.append(f"segment {label} has no text")
@@ -365,7 +633,19 @@ def command_validate(args: argparse.Namespace) -> None:
     errors = validate_plan(plan)
     if errors:
         raise FocusError("; ".join(errors))
+    source = verify_plan_source(
+        plan, Path(args.srt).expanduser().resolve() if args.srt else None
+    )
     segments = plan["segments"]
+    video_result = None
+    if args.video:
+        video = Path(args.video).expanduser().resolve()
+        video_result = probe_video(video)
+        if source["last_end_ms"] > round(video_result["duration"] * 1000) + int(args.tolerance_ms):
+            raise FocusError(
+                f'SRT ends at {source["last_end_ms"]}ms but video ends at '
+                f'{round(video_result["duration"] * 1000)}ms'
+            )
     highlighted_chars = sum(
         h["end"] - h["start"] for segment in segments for h in segment.get("highlights", [])
     )
@@ -375,7 +655,15 @@ def command_validate(args: argparse.Namespace) -> None:
         "segments": len(segments),
         "highlight_ranges": sum(len(s.get("highlights", [])) for s in segments),
         "highlight_coverage": round(highlighted_chars / max(1, visible_chars), 4),
+        "source_srt_sha256": source["sha256"],
+        "cue_count": source["cue_count"],
     }
+    if video_result:
+        result["video"] = {
+            "width": video_result["width"],
+            "height": video_result["height"],
+            "duration": video_result["duration"],
+        }
     print(json.dumps(result, ensure_ascii=False))
 
 
@@ -434,6 +722,67 @@ def rgba(value: Iterable[int]) -> tuple[int, int, int, int]:
     if len(parts) != 4 or any(v < 0 or v > 255 for v in parts):
         raise FocusError(f"Invalid RGBA color: {parts}")
     return parts
+
+
+def validate_style(style: dict[str, Any]) -> None:
+    for key in ("center_x_ratio", "center_y_ratio", "safe_width_ratio"):
+        value = float(style.get(key, 0.5 if key != "safe_width_ratio" else 0.9))
+        if not 0 < value <= 1:
+            raise FocusError(f"Style {key} must be within (0, 1]")
+    if float(style.get("font_size_ratio", 0.048)) <= 0:
+        raise FocusError("Style font_size_ratio must be positive")
+    if int(style.get("font_size_min", 34)) <= 0 or int(style.get("font_size_max", 112)) <= 0:
+        raise FocusError("Style font sizes must be positive")
+    if int(style.get("font_size_min", 34)) > int(style.get("font_size_max", 112)):
+        raise FocusError("Style font_size_min cannot exceed font_size_max")
+
+
+def command_style(args: argparse.Namespace) -> None:
+    base_path = Path(args.base).expanduser().resolve()
+    style = load_json(base_path)
+    overrides = {
+        "center_x_ratio": args.center_x_ratio,
+        "center_y_ratio": args.center_y_ratio,
+        "safe_width_ratio": args.safe_width_ratio,
+        "font_size_ratio": args.font_size_ratio,
+        "font_size_min": args.font_size_min,
+        "font_size_max": args.font_size_max,
+    }
+    applied = {key: value for key, value in overrides.items() if value is not None}
+    style.update(applied)
+    reference = None
+    if args.reference_image:
+        image_path = Path(args.reference_image).expanduser().resolve()
+        if not image_path.is_file():
+            raise FocusError(f"Reference image does not exist: {image_path}")
+        with Image.open(image_path) as image:
+            reference = {
+                "path": str(image_path),
+                "sha256": sha256_file(image_path),
+                "width": image.width,
+                "height": image.height,
+            }
+    validate_style(style)
+    style["_meta"] = {
+        "base_style": str(base_path),
+        "base_sha256": sha256_file(base_path),
+        "reference_demo": reference,
+        "overrides": applied,
+        "created_at": utc_now(),
+    }
+    output = Path(args.output).expanduser().resolve()
+    write_json(output, style)
+    print(
+        json.dumps(
+            {
+                "output": str(output),
+                "center_y_ratio": style.get("center_y_ratio", 0.82),
+                "reference_demo": reference,
+                "overrides": applied,
+            },
+            ensure_ascii=False,
+        )
+    )
 
 
 def highlight_runs(text: str, highlights: list[dict[str, Any]]) -> list[tuple[str, bool]]:
@@ -567,6 +916,7 @@ def command_review(args: argparse.Namespace) -> None:
     errors = validate_plan(plan)
     if errors:
         raise FocusError("; ".join(errors))
+    verify_plan_source(plan)
     segments = plan["segments"]
     highlighted = [s for s in segments if s.get("highlights")]
     plain = [s for s in segments if not s.get("highlights")]
@@ -601,6 +951,8 @@ def command_preview(args: argparse.Namespace) -> None:
     errors = validate_plan(plan)
     if errors:
         raise FocusError("; ".join(errors))
+    verify_plan_source(plan)
+    validate_style(style)
     segments = plan["segments"]
     if args.cue is not None:
         matches = [s for s in segments if s["cue_id"] == args.cue]
@@ -612,8 +964,26 @@ def command_preview(args: argparse.Namespace) -> None:
     output = Path(args.output).expanduser().resolve()
     refuse_existing(output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    render_segment_canvas(segment, style, args.width, args.height).save(output)
-    print(json.dumps({"output": str(output), "segment_id": segment["id"], "cue_id": segment["cue_id"]}, ensure_ascii=False))
+    if args.video:
+        if args.width or args.height:
+            raise FocusError("Use either --video or --width/--height, not both")
+        probe = probe_video(Path(args.video).expanduser().resolve())
+        width, height = probe["width"], probe["height"]
+    else:
+        width, height = int(args.width or 1920), int(args.height or 1080)
+    render_segment_canvas(segment, style, width, height).save(output)
+    print(
+        json.dumps(
+            {
+                "output": str(output),
+                "segment_id": segment["id"],
+                "cue_id": segment["cue_id"],
+                "width": width,
+                "height": height,
+            },
+            ensure_ascii=False,
+        )
+    )
 
 
 def probe_video(path: Path) -> dict[str, Any]:
@@ -696,7 +1066,14 @@ def command_render(args: argparse.Namespace) -> None:
     errors = validate_plan(plan)
     if errors:
         raise FocusError("; ".join(errors))
+    source = verify_plan_source(plan)
+    validate_style(style)
     probe = probe_video(video)
+    if source["last_end_ms"] > round(probe["duration"] * 1000) + int(args.tolerance_ms):
+        raise FocusError(
+            f'SRT ends at {source["last_end_ms"]}ms but video ends at '
+            f'{round(probe["duration"] * 1000)}ms'
+        )
     clip_start = max(0.0, float(args.start or 0.0))
     if clip_start >= probe["duration"]:
         raise FocusError("--start is beyond video duration")
@@ -742,6 +1119,345 @@ def command_render(args: argparse.Namespace) -> None:
     print(json.dumps({"output": str(output), **rendered}, ensure_ascii=False))
 
 
+def correction_cue_ids(path: Path | None) -> set[int]:
+    if path is None:
+        return set()
+    data = load_json(path)
+    if data.get("version") != 1 or not isinstance(data.get("items"), list):
+        raise FocusError("Corrections must use schema version 1 with an items array")
+    return {int(item["cue_id"]) for item in data["items"]}
+
+
+def validate_corrections_applied(path: Path | None, cues: list[dict[str, Any]]) -> None:
+    if path is None:
+        return
+    data = load_json(path)
+    by_id = {int(cue["cue_id"]): cue["text"] for cue in cues}
+    for index, item in enumerate(data.get("items", []), start=1):
+        cue_id = int(item.get("cue_id", -1))
+        replacement = str(item.get("replace", ""))
+        if cue_id not in by_id:
+            raise FocusError(f"Correction {index} targets missing final cue {cue_id}")
+        if replacement and replacement not in by_id[cue_id]:
+            raise FocusError(
+                f'Correction {index} replacement "{replacement}" is absent from final cue {cue_id}'
+            )
+
+
+def select_review_segments(
+    plan: dict[str, Any], corrected_cues: set[int]
+) -> list[tuple[dict[str, Any], list[str]]]:
+    segments = plan["segments"]
+    reasons: dict[str, set[str]] = {}
+    by_id = {segment["id"]: segment for segment in segments}
+
+    def add(segment: dict[str, Any], reason: str) -> None:
+        reasons.setdefault(segment["id"], set()).add(reason)
+
+    for segment in segments:
+        if segment.get("highlights"):
+            add(segment, "highlighted")
+        if int(segment["cue_id"]) in corrected_cues:
+            add(segment, "corrected")
+    add(segments[0], "entry")
+    add(segments[-1], "exit")
+    total_mid = (int(segments[0]["start_ms"]) + int(segments[-1]["end_ms"])) / 2
+    middle = min(
+        segments,
+        key=lambda segment: abs(
+            (int(segment["start_ms"]) + int(segment["end_ms"])) / 2 - total_mid
+        ),
+    )
+    add(middle, "middle")
+    selected = [(by_id[key], sorted(value)) for key, value in reasons.items()]
+    return sorted(selected, key=lambda item: (int(item[0]["start_ms"]), item[0]["id"]))
+
+
+def extract_video_frame(video: Path, timestamp_s: float, output: Path) -> None:
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        raise FocusError("ffmpeg is required to extract review frames")
+    command = [
+        ffmpeg,
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-ss",
+        f"{timestamp_s:.6f}",
+        "-i",
+        str(video),
+        "-frames:v",
+        "1",
+        "-y",
+        str(output),
+    ]
+    result = subprocess.run(command, capture_output=True, text=True)
+    if result.returncode:
+        raise FocusError(f"ffmpeg frame extraction failed: {result.stderr.strip()}")
+
+
+def build_contact_sheet(
+    entries: list[dict[str, Any]], style: dict[str, Any], output: Path
+) -> None:
+    columns = 4
+    cell_width = 340
+    thumb_height = 560
+    label_height = 86
+    gap = 18
+    rows = math.ceil(len(entries) / columns)
+    canvas_width = columns * cell_width + (columns + 1) * gap
+    canvas_height = rows * (thumb_height + label_height) + (rows + 1) * gap
+    canvas = Image.new("RGB", (canvas_width, canvas_height), (20, 20, 22))
+    draw = ImageDraw.Draw(canvas)
+    font = load_style_font(style, 22)
+    small = load_style_font(style, 18)
+    for index, entry in enumerate(entries):
+        row, column = divmod(index, columns)
+        x = gap + column * (cell_width + gap)
+        y = gap + row * (thumb_height + label_height + gap)
+        with Image.open(entry["path"]) as image:
+            thumb = ImageOps.contain(image.convert("RGB"), (cell_width, thumb_height))
+            image_x = x + (cell_width - thumb.width) // 2
+            image_y = y + (thumb_height - thumb.height) // 2
+            canvas.paste(thumb, (image_x, image_y))
+        label_y = y + thumb_height + 8
+        draw.text(
+            (x, label_y),
+            f'ID {entry["cue_id"]} · {ms_clock(entry["timestamp_ms"])}',
+            font=font,
+            fill=(255, 214, 0),
+        )
+        caption = str(entry["text"])
+        if len(caption) > 22:
+            caption = caption[:21] + "…"
+        draw.text((x, label_y + 32), caption, font=small, fill=(238, 238, 238))
+    canvas.save(output, quality=92)
+
+
+def command_frames(args: argparse.Namespace) -> None:
+    video = Path(args.video).expanduser().resolve()
+    plan = load_json(Path(args.plan).expanduser().resolve())
+    style = load_json(Path(args.style).expanduser().resolve())
+    errors = validate_plan(plan)
+    if errors:
+        raise FocusError("; ".join(errors))
+    source = verify_plan_source(plan)
+    validate_style(style)
+    probe = probe_video(video)
+    if source["last_end_ms"] > round(probe["duration"] * 1000) + int(args.tolerance_ms):
+        raise FocusError("SRT extends beyond the review video")
+    corrections = Path(args.corrections).expanduser().resolve() if args.corrections else None
+    corrected_cues = correction_cue_ids(corrections)
+    selected = select_review_segments(plan, corrected_cues)
+    output_dir = Path(args.output_dir).expanduser().resolve()
+    refuse_existing(output_dir)
+    output_dir.mkdir(parents=True)
+    entries: list[dict[str, Any]] = []
+    for index, (segment, reasons) in enumerate(selected, start=1):
+        timestamp_ms = round((int(segment["start_ms"]) + int(segment["end_ms"])) / 2)
+        raw_path = output_dir / f".raw-{index:03d}.png"
+        image_path = output_dir / f'frame-{index:03d}-cue-{int(segment["cue_id"]):03d}.png'
+        extract_video_frame(video, timestamp_ms / 1000, raw_path)
+        with Image.open(raw_path) as base:
+            rgba_base = base.convert("RGBA")
+            if args.already_burned:
+                rgba_base.convert("RGB").save(image_path, quality=95)
+            else:
+                overlay = render_segment_canvas(segment, style, rgba_base.width, rgba_base.height)
+                Image.alpha_composite(rgba_base, overlay).convert("RGB").save(image_path, quality=95)
+        raw_path.unlink(missing_ok=True)
+        entries.append(
+            {
+                "path": str(image_path),
+                "filename": image_path.name,
+                "segment_id": segment["id"],
+                "cue_id": int(segment["cue_id"]),
+                "timestamp_ms": timestamp_ms,
+                "text": segment["text"],
+                "reasons": reasons,
+            }
+        )
+    contact_sheet = output_dir / "contact-sheet.jpg"
+    build_contact_sheet(entries, style, contact_sheet)
+    index_data = {
+        "version": 1,
+        "kind": "subtitle-focus-review-frames",
+        "created_at": utc_now(),
+        "video": {"path": str(video), "sha256": sha256_file(video)},
+        "already_burned": bool(args.already_burned),
+        "plan": {"source_srt_sha256": source["sha256"]},
+        "corrections": str(corrections) if corrections else None,
+        "corrected_cue_ids": sorted(corrected_cues),
+        "frames": entries,
+        "contact_sheet": str(contact_sheet),
+    }
+    (output_dir / "index.json").write_text(
+        json.dumps(index_data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    lines = ["# 字幕抽帧检查", "", f"![字幕联系表](./{contact_sheet.name})", ""]
+    for entry in entries:
+        lines.append(
+            f'- ID {entry["cue_id"]} · {ms_clock(entry["timestamp_ms"])} · '
+            f'{", ".join(entry["reasons"])} · [{entry["text"]}](./{entry["filename"]})'
+        )
+    (output_dir / "index.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(
+        json.dumps(
+            {
+                "output_dir": str(output_dir),
+                "frames": len(entries),
+                "corrected_cue_ids": sorted(corrected_cues),
+                "contact_sheet": str(contact_sheet),
+            },
+            ensure_ascii=False,
+        )
+    )
+
+
+def copy_refuse(source: Path, destination: Path) -> None:
+    refuse_existing(destination)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, destination)
+
+
+def command_deliver(args: argparse.Namespace) -> None:
+    video = Path(args.video).expanduser().resolve()
+    srt = Path(args.srt).expanduser().resolve()
+    plan_path = Path(args.plan).expanduser().resolve()
+    style_path = Path(args.style).expanduser().resolve()
+    plan = load_json(plan_path)
+    style = load_json(style_path)
+    errors = validate_plan(plan)
+    if errors:
+        raise FocusError("; ".join(errors))
+    source = verify_plan_source(plan, srt)
+    validate_style(style)
+    cues = parse_srt(srt)
+    probe = probe_video(video)
+    if source["last_end_ms"] > round(probe["duration"] * 1000) + int(args.tolerance_ms):
+        raise FocusError("SRT extends beyond the delivery video")
+    corrections_path = Path(args.corrections).expanduser().resolve() if args.corrections else None
+    corrected_cues = correction_cue_ids(corrections_path)
+    validate_corrections_applied(corrections_path, cues)
+    review_dir = Path(args.review_dir).expanduser().resolve() if args.review_dir else None
+    reviewed_cues: set[int] = set()
+    review_index = None
+    if review_dir:
+        review_index_path = review_dir / "index.json"
+        review_index = load_json(review_index_path)
+        reviewed_cues = {int(item["cue_id"]) for item in review_index.get("frames", [])}
+        reviewed_segments = {str(item["segment_id"]) for item in review_index.get("frames", [])}
+        if not review_index.get("already_burned"):
+            raise FocusError("Delivery review frames must come from the already-burned final video")
+        if review_index.get("video", {}).get("sha256") != sha256_file(video):
+            raise FocusError("Review frames were not extracted from this final delivery video")
+        if review_index.get("plan", {}).get("source_srt_sha256") != source["sha256"]:
+            raise FocusError("Review frames were generated from a different locked SRT")
+        required_segments = {
+            segment["id"] for segment, _ in select_review_segments(plan, corrected_cues)
+        }
+        missing_segments = required_segments - reviewed_segments
+        if missing_segments:
+            raise FocusError(f"Required review segments are missing: {sorted(missing_segments)}")
+    elif corrected_cues:
+        raise FocusError("A review frame directory is required when corrections are present")
+
+    output = Path(args.output).expanduser().resolve()
+    refuse_existing(output)
+    handoff: dict[str, Any] | None = None
+    destinations: list[tuple[Path, Path]] = []
+    transcript_destination = None
+    handoff_manifest = None
+    if args.handoff_dir:
+        handoff_dir = Path(args.handoff_dir).expanduser().resolve()
+        name = args.name or video.stem
+        handoff_dir.mkdir(parents=True, exist_ok=True)
+        srt_destination = handoff_dir / f"{name}.srt"
+        transcript_destination = handoff_dir / f"{name}-transcript.md"
+        handoff_manifest = handoff_dir / f"{name}-delivery.json"
+        for candidate in (srt_destination, transcript_destination, handoff_manifest):
+            refuse_existing(candidate)
+        destinations.append((srt, srt_destination))
+        video_destination = None
+        if args.copy_video:
+            video_destination = handoff_dir / f"{name}{video.suffix.lower()}"
+            refuse_existing(video_destination)
+            destinations.append((video, video_destination))
+        publish_destination = None
+        if args.publish_copy:
+            publish_source = Path(args.publish_copy).expanduser().resolve()
+            publish_destination = handoff_dir / f"{name}-publish-copy{publish_source.suffix or '.md'}"
+            refuse_existing(publish_destination)
+            destinations.append((publish_source, publish_destination))
+        handoff = {
+            "directory": str(handoff_dir),
+            "video": str(video_destination) if video_destination else None,
+            "srt": str(srt_destination),
+            "transcript": str(transcript_destination),
+            "publish_copy": str(publish_destination) if publish_destination else None,
+            "manifest": str(handoff_manifest),
+        }
+
+    for source_path, destination in destinations:
+        copy_refuse(source_path, destination)
+    if transcript_destination:
+        transcript = "# 口播稿\n\n" + "\n\n".join(cue["text"] for cue in cues) + "\n"
+        transcript_destination.write_text(transcript, encoding="utf-8")
+
+    manifest = {
+        "version": 1,
+        "kind": "subtitle-focus-delivery",
+        "created_at": utc_now(),
+        "includes": ["burned_subtitles", "locked_srt", "highlight_plan", "style", "review_frames"],
+        "video": {
+            "path": str(video),
+            "sha256": sha256_file(video),
+            "width": probe["width"],
+            "height": probe["height"],
+            "duration": probe["duration"],
+        },
+        "srt": source,
+        "plan": {
+            "path": str(plan_path),
+            "sha256": sha256_file(plan_path),
+            "highlight_ranges": sum(len(item.get("highlights", [])) for item in plan["segments"]),
+        },
+        "style": {
+            "path": str(style_path),
+            "sha256": sha256_file(style_path),
+            "center_y_ratio": float(style.get("center_y_ratio", 0.82)),
+            "reference_demo": style.get("_meta", {}).get("reference_demo"),
+        },
+        "corrections": {
+            "path": str(corrections_path) if corrections_path else None,
+            "sha256": sha256_file(corrections_path) if corrections_path else None,
+            "changed_cue_ids": sorted(corrected_cues),
+        },
+        "review": {
+            "directory": str(review_dir) if review_dir else None,
+            "reviewed_cue_ids": sorted(reviewed_cues),
+            "contact_sheet": review_index.get("contact_sheet") if review_index else None,
+        },
+        "handoff": handoff,
+        "errors": [],
+    }
+    write_json(output, manifest)
+    if handoff_manifest:
+        copy_refuse(output, handoff_manifest)
+    print(
+        json.dumps(
+            {
+                "output": str(output),
+                "video_sha256": manifest["video"]["sha256"],
+                "srt_sha256": source["sha256"],
+                "changed_cue_ids": sorted(corrected_cues),
+                "handoff": handoff,
+            },
+            ensure_ascii=False,
+        )
+    )
+
+
 def command_doctor(_: argparse.Namespace) -> None:
     ffmpeg = shutil.which("ffmpeg")
     ffprobe = shutil.which("ffprobe")
@@ -775,8 +1491,25 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
     doctor = sub.add_parser("doctor", help="check Pillow, fonts, ffmpeg and overlay support")
     doctor.set_defaults(func=command_doctor)
-    plan = sub.add_parser("plan", help="parse and segment an SRT file")
+    proofread = sub.add_parser("proofread", help="build a cue-by-cue text review table")
+    proofread.add_argument("--srt", required=True)
+    proofread.add_argument("--glossary")
+    proofread.add_argument("--output", required=True)
+    proofread.set_defaults(func=command_proofread)
+    correct = sub.add_parser("correct", help="apply confirmed exact-text SRT corrections")
+    correct.add_argument("--srt", required=True)
+    correct.add_argument("--corrections", required=True)
+    correct.add_argument("--output", required=True)
+    correct.add_argument("--review", required=True)
+    correct.set_defaults(func=command_correct)
+    lock = sub.add_parser("lock", help="lock a human-confirmed SRT by content hash")
+    lock.add_argument("--srt", required=True)
+    lock.add_argument("--output", required=True)
+    lock.add_argument("--confirmed", action="store_true")
+    lock.set_defaults(func=command_lock)
+    plan = sub.add_parser("plan", help="parse and segment a locked SRT file")
     plan.add_argument("--srt", required=True)
+    plan.add_argument("--lock", required=True)
     plan.add_argument("--output", required=True)
     plan.add_argument("--max-chars", type=float, default=16.0)
     plan.set_defaults(func=command_plan)
@@ -787,18 +1520,33 @@ def build_parser() -> argparse.ArgumentParser:
     apply_cmd.set_defaults(func=command_apply)
     validate = sub.add_parser("validate", help="validate plan timing and highlight offsets")
     validate.add_argument("--plan", required=True)
+    validate.add_argument("--srt")
+    validate.add_argument("--video")
+    validate.add_argument("--tolerance-ms", type=int, default=100)
     validate.set_defaults(func=command_validate)
     review = sub.add_parser("review", help="print a markdown table of highlight decisions")
     review.add_argument("--plan", required=True)
     review.add_argument("--output")
     review.set_defaults(func=command_review)
+    style = sub.add_parser("style", help="derive a configurable style, optionally from a reference demo")
+    style.add_argument("--base", required=True)
+    style.add_argument("--output", required=True)
+    style.add_argument("--reference-image")
+    style.add_argument("--center-x-ratio", type=float)
+    style.add_argument("--center-y-ratio", type=float)
+    style.add_argument("--safe-width-ratio", type=float)
+    style.add_argument("--font-size-ratio", type=float)
+    style.add_argument("--font-size-min", type=int)
+    style.add_argument("--font-size-max", type=int)
+    style.set_defaults(func=command_style)
     preview = sub.add_parser("preview", help="render one highlighted subtitle card as PNG")
     preview.add_argument("--plan", required=True)
     preview.add_argument("--style", required=True)
     preview.add_argument("--output", required=True)
     preview.add_argument("--cue", type=int)
-    preview.add_argument("--width", type=int, default=1920)
-    preview.add_argument("--height", type=int, default=1080)
+    preview.add_argument("--video")
+    preview.add_argument("--width", type=int)
+    preview.add_argument("--height", type=int)
     preview.set_defaults(func=command_preview)
     render = sub.add_parser("render", help="burn highlighted subtitles into a video")
     render.add_argument("--video", required=True)
@@ -810,7 +1558,31 @@ def build_parser() -> argparse.ArgumentParser:
     render.add_argument("--crf", type=int, default=18)
     render.add_argument("--preset", default="medium")
     render.add_argument("--keep-workdir")
+    render.add_argument("--tolerance-ms", type=int, default=100)
     render.set_defaults(func=command_render)
+    frames = sub.add_parser("frames", help="extract corrected, highlighted, entry, middle and exit review frames")
+    frames.add_argument("--video", required=True)
+    frames.add_argument("--plan", required=True)
+    frames.add_argument("--style", required=True)
+    frames.add_argument("--corrections")
+    frames.add_argument("--output-dir", required=True)
+    frames.add_argument("--already-burned", action="store_true")
+    frames.add_argument("--tolerance-ms", type=int, default=100)
+    frames.set_defaults(func=command_frames)
+    deliver = sub.add_parser("deliver", help="validate and register one canonical subtitle delivery")
+    deliver.add_argument("--video", required=True)
+    deliver.add_argument("--srt", required=True)
+    deliver.add_argument("--plan", required=True)
+    deliver.add_argument("--style", required=True)
+    deliver.add_argument("--corrections")
+    deliver.add_argument("--review-dir", required=True)
+    deliver.add_argument("--output", required=True)
+    deliver.add_argument("--handoff-dir")
+    deliver.add_argument("--name")
+    deliver.add_argument("--copy-video", action="store_true")
+    deliver.add_argument("--publish-copy")
+    deliver.add_argument("--tolerance-ms", type=int, default=100)
+    deliver.set_defaults(func=command_deliver)
     return parser
 
 
