@@ -13,7 +13,9 @@
   <img src="https://img.shields.io/badge/隐私-只处理本机文件-34d399.svg" alt="只处理本机文件">
 </p>
 
-**subtitle-focus** 是一套 Agent Skill + 确定性 Python 渲染器。它先校对并锁定 SRT，再选择黄字重点、本机烧录字幕、从最终成片抽帧检查，最后登记唯一交付。
+**subtitle-focus** 是一套 Agent Skill + 确定性 Python 渲染器。它先用分层词库校对带时间码的 SRT，再锁定文字、选择黄字重点、本机烧录字幕、从最终成片抽帧检查，最后登记唯一交付。
+
+它明确从用户导出的 SRT 开始，不转写视频，不调用 Video Use，不运行本地 ASR/OCR，也不根据纯 MD 口播稿猜测时间码。
 
 ## 真实成片效果
 
@@ -55,6 +57,22 @@
 
 文字修改、高亮选择和样片都必须经过用户确认，不能由 Agent 自己跳闸。
 
+## 分层词库
+
+基础词库默认加载；AI 场景使用 `--domain ai`；长期使用的个人词放在 `~/.config/subtitle-focus/glossary.json`；当前视频独有词汇通过项目词库传入。
+
+```text
+项目 > 旧版自定义 > 个人 > 场景 > 基础
+```
+
+词库保存“已知错误形式 → 标准写法”。它只生成带来源的纠正建议，绝不自动改写 SRT。同一个错误形式发生冲突时，项目词库覆盖低优先级词库。
+
+```bash
+python3 skill/scripts/subtitle_focus.py glossary-init --scope personal
+python3 skill/scripts/subtitle_focus.py glossary-init \
+  --scope project --output /abs/project-glossary.json
+```
+
 ## 安装
 
 ```bash
@@ -90,9 +108,11 @@ WORK=/abs/work
 
 python3 "$SCRIPT" proofread \
   --srt /abs/input.srt \
+  --domain ai \
+  --project-glossary /abs/project-glossary.json \
   --output "$WORK/text-review.md"
 
-# 听过音频、核对项目术语后，再写 corrections.json。
+# 根据 SRT 前后文、词库来源、项目资料和用户纠正整理 corrections.json。
 python3 "$SCRIPT" correct \
   --srt /abs/input.srt \
   --corrections "$WORK/corrections.json" \
@@ -185,7 +205,8 @@ python3 "$SCRIPT" deliver \
 | 命令 | 作用 |
 | --- | --- |
 | `doctor` | 检查 Pillow、字体、FFmpeg、FFprobe 和 overlay |
-| `proofread` | 输出逐条文字校对表，可用术语表标记疑似错误 |
+| `glossary-init` | 创建可编辑的空白个人词库或项目词库 |
+| `proofread` | 使用分层词库输出逐条、带来源的纠正建议 |
 | `correct` | 只执行已确认的精确文字替换，不改时间轴 |
 | `lock` | 用内容指纹锁定确认后的 SRT |
 | `plan` | 把锁定 SRT 切成字幕段 |
@@ -210,7 +231,7 @@ python3 -m unittest discover -s tests -v
 python3 -m py_compile skill/scripts/subtitle_focus.py
 ```
 
-测试覆盖真实 FFmpeg 端到端烧录、旧 SRT 自动失效、参考图来源记录、修改字幕抽帧、最终成片 SHA 绑定和 handoff 生成。
+9 项测试覆盖分层词库优先级、纯 MD 拒绝、真实 FFmpeg 端到端烧录、旧 SRT 自动失效、参考图来源记录、修改字幕抽帧、最终成片 SHA 绑定和 handoff 生成。
 
 ## 默认值与边界
 
@@ -223,6 +244,8 @@ python3 -m py_compile skill/scripts/subtitle_focus.py
 | 底条 | `#505050`、69% 不透明度、28% 边距、40% 圆角 |
 
 - 原 SRT 和原视频永远不覆盖。
+- 必须提供带时间码的 SRT；纯 MD 和只有视频的输入会在第一阶段前停止。
+- 不调用 Video Use、剪口播、Whisper、ASR 或 OCR。
 - 渲染需要能显示中文的字体。
 - 接近 4K 的完整编码需要时间，先用样片抓布局错误。
 - 仓库不包含源视频；README 只保留裁切后的最终效果截图。

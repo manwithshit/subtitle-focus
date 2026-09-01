@@ -125,6 +125,138 @@ class SubtitleFocusTest(unittest.TestCase):
         self.assertIn("`生成花纹` → `生成华纹`", text)
         self.assertIn("脚本不会擅自改字", text)
 
+    def test_proofread_layers_builtin_personal_and_project_glossaries(self):
+        source = self.work / "layered.srt"
+        source.write_text(
+            """1
+00:00:00,100 --> 00:00:00,700
+我用chatgpt和clawd code写了一个AI工具，英文里还有said
+""",
+            encoding="utf-8",
+        )
+        personal = self.work / "personal.json"
+        personal.write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "name": "我的常用词",
+                    "forbidden_terms": [
+                        {
+                            "text": "clawd code",
+                            "suggest": "Claude Code",
+                            "reason": "个人常用产品名",
+                        }
+                    ],
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        project = self.work / "project.json"
+        project.write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "name": "当前项目词库",
+                    "forbidden_terms": [
+                        {
+                            "text": "clawd code",
+                            "suggest": "Claude Code 项目版",
+                            "reason": "项目明确写法",
+                        }
+                    ],
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        output = self.work / "layered-review.md"
+        before = source.read_bytes()
+        focus.command_proofread(
+            namespace(
+                srt=str(source),
+                glossary=None,
+                domains=["ai"],
+                personal_glossary=str(personal),
+                project_glossary=str(project),
+                use_default_personal=False,
+                output=str(output),
+            )
+        )
+        self.assertEqual(before, source.read_bytes())
+        text = output.read_text(encoding="utf-8")
+        self.assertIn("`chatgpt` → `ChatGPT`", text)
+        self.assertIn("AI 场景词库", text)
+        self.assertIn("`clawd code` → `Claude Code 项目版`", text)
+        self.assertNotIn("`clawd code` → `Claude Code`（个人常用产品名）", text)
+        self.assertNotIn("`ai` → `AI`", text)
+        self.assertIn("当前项目词库", text)
+
+    def test_proofread_rejects_plain_markdown_without_timestamps(self):
+        transcript = self.work / "transcript.md"
+        transcript.write_text("第一句台词\n第二句台词\n", encoding="utf-8")
+        with self.assertRaisesRegex(focus.FocusError, "timestamped SRT is required"):
+            focus.command_proofread(
+                namespace(
+                    srt=str(transcript),
+                    glossary=None,
+                    domains=[],
+                    personal_glossary=None,
+                    project_glossary=None,
+                    use_default_personal=False,
+                    output=str(self.work / "should-not-exist.md"),
+                )
+            )
+
+    def test_glossary_init_creates_editable_empty_file_without_overwrite(self):
+        output = self.work / "project-glossary.json"
+        focus.command_glossary_init(namespace(scope="project", output=str(output)))
+        glossary = focus.load_json(output)
+        self.assertEqual(glossary["version"], 1)
+        self.assertEqual(glossary["forbidden_terms"], [])
+        self.assertEqual(glossary["name"], "项目词库")
+        with self.assertRaisesRegex(focus.FocusError, "Refusing to overwrite"):
+            focus.command_glossary_init(namespace(scope="project", output=str(output)))
+        original_default = focus.DEFAULT_PERSONAL_GLOSSARY
+        try:
+            personal = self.work / "config" / "glossary.json"
+            focus.DEFAULT_PERSONAL_GLOSSARY = personal
+            focus.command_glossary_init(namespace(scope="personal", output=None))
+            self.assertEqual(focus.load_json(personal)["name"], "个人词库")
+            personal.write_text(
+                json.dumps(
+                    {
+                        "version": 1,
+                        "name": "个人词库",
+                        "forbidden_terms": [
+                            {"text": "常错词", "suggest": "标准词", "reason": "个人写法"}
+                        ],
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            auto_source = self.work / "auto-personal.srt"
+            auto_source.write_text(
+                "1\n00:00:00,000 --> 00:00:01,000\n这里是常错词\n",
+                encoding="utf-8",
+            )
+            auto_review = self.work / "auto-personal-review.md"
+            focus.command_proofread(
+                namespace(
+                    srt=str(auto_source),
+                    glossary=None,
+                    domains=[],
+                    personal_glossary=None,
+                    project_glossary=None,
+                    use_default_personal=True,
+                    output=str(auto_review),
+                )
+            )
+            self.assertIn("`常错词` → `标准词`", auto_review.read_text(encoding="utf-8"))
+        finally:
+            focus.DEFAULT_PERSONAL_GLOSSARY = original_default
+
     def test_lock_requires_explicit_confirmation(self):
         with self.assertRaisesRegex(focus.FocusError, "without --confirmed"):
             focus.command_lock(

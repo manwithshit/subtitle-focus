@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "name": "AI 场景词库",
+  "forbidden_terms": [
+    {
+      "text": "chatgpt",
+      "suggest": "ChatGPT",
+      "reason": "产品标准写法",
+      "category": "product"
+    },
+    {
+      "text": "Chatgpt",
+      "suggest": "ChatGPT",
+      "reason": "产品标准写法",
+      "category": "product"
+    },
+    {
+      "text": "Chat GPT",
+      "suggest": "ChatGPT",
+      "reason": "产品标准写法",
+      "category": "product"
+    },
+    {
+      "text": "openai",
+      "suggest": "OpenAI",
+      "reason": "产品标准写法",
+      "category": "product"
+    },
+    {
+      "text": "Open AI",
+      "suggest": "OpenAI",
+      "reason": "产品标准写法",
+      "category": "product"
+    },
+    {
+      "text": "claude code",
+      "suggest": "Claude Code",
+      "reason": "产品标准写法",
+      "category": "product"
+    },
+    {
+      "text": "Claude code",
+      "suggest": "Claude Code",
+      "reason": "产品标准写法",
+      "category": "product"
+    },
+    {
+      "text": "Clawd Code",
+      "suggest": "Claude Code",
+      "reason": "常见同音识别错误",
+      "category": "asr-variant"
+    },
+    {
+      "text": "clawd code",
+      "suggest": "Claude Code",
+      "reason": "常见同音识别错误",
+      "category": "asr-variant"
+    },
+    {
+      "text": "gemini cli",
+      "suggest": "Gemini CLI",
+      "reason": "产品标准写法",
+      "category": "product"
+    },
+    {
+      "text": "Gemini Cli",
+      "suggest": "Gemini CLI",
+      "reason": "产品标准写法",
+      "category": "product"
+    },
+    {
+      "text": "kimi k3",
+      "suggest": "Kimi K3",
+      "reason": "产品标准写法",
+      "category": "product"
+    },
+    {
+      "text": "Kimi k3",
+      "suggest": "Kimi K3",
+      "reason": "产品标准写法",
+      "category": "product"
+    },
+    {
+      "text": "Kimi K 3",
+      "suggest": "Kimi K3",
+      "reason": "常见语音识别空格",
+      "category": "asr-variant"
+    },
+    {
+      "text": "vibe coding",
+      "suggest": "Vibe Coding",
+      "reason": "场景常用写法",
+      "category": "term"
+    }
+  ]
+}

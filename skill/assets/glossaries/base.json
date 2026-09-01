@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "name": "基础词库",
+  "forbidden_terms": [
+    {
+      "text": "ai",
+      "suggest": "AI",
+      "reason": "常用技术缩写大写",
+      "category": "capitalization"
+    },
+    {
+      "text": "Ai",
+      "suggest": "AI",
+      "reason": "常用技术缩写大写",
+      "category": "capitalization"
+    },
+    {
+      "text": "api",
+      "suggest": "API",
+      "reason": "常用技术缩写大写",
+      "category": "capitalization"
+    },
+    {
+      "text": "mcp",
+      "suggest": "MCP",
+      "reason": "常用技术缩写大写",
+      "category": "capitalization"
+    },
+    {
+      "text": "3d",
+      "suggest": "3D",
+      "reason": "常用技术写法",
+      "category": "capitalization"
+    },
+    {
+      "text": "3 d",
+      "suggest": "3D",
+      "reason": "常见语音识别空格",
+      "category": "asr-variant"
+    }
+  ]
+}

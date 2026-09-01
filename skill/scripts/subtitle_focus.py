@@ -34,6 +34,10 @@ FONT_CANDIDATES = (
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
 )
 PINGFANG_SC_MEDIUM_INDEX = 7
+SKILL_ROOT = Path(__file__).resolve().parents[1]
+BUILTIN_GLOSSARY_DIR = SKILL_ROOT / "assets" / "glossaries"
+DEFAULT_PERSONAL_GLOSSARY = Path("~/.config/subtitle-focus/glossary.json").expanduser()
+BUILTIN_GLOSSARIES = {"base", "ai"}
 
 
 class FocusError(RuntimeError):
@@ -108,7 +112,10 @@ def parse_srt(path: Path) -> list[dict[str, Any]]:
             raise FocusError(f"Cue {cue_id} has non-positive duration")
         cues.append({"cue_id": cue_id, "start_ms": start_ms, "end_ms": end_ms, "text": text})
     if not cues:
-        raise FocusError(f"No subtitle cues found in {path}")
+        raise FocusError(
+            f"No timed subtitle cues found in {path}; a timestamped SRT is required. "
+            "Plain MD/transcript input and local ASR/OCR are not supported."
+        )
     return cues
 
 
@@ -302,33 +309,115 @@ def markdown_cell(value: Any) -> str:
     return str(value).replace("|", "\\|").replace("\n", " ")
 
 
+def load_glossary_layer(path: Path, fallback_name: str, priority: int) -> dict[str, Any]:
+    glossary = load_json(path)
+    if glossary.get("version") != 1:
+        raise FocusError(f"Only glossary schema version 1 is supported: {path}")
+    forbidden = glossary.get("forbidden_terms", [])
+    if not isinstance(forbidden, list):
+        raise FocusError(f"glossary forbidden_terms must be an array: {path}")
+    name = str(glossary.get("name", fallback_name)).strip() or fallback_name
+    items: list[dict[str, Any]] = []
+    for index, item in enumerate(forbidden, start=1):
+        if not isinstance(item, dict):
+            raise FocusError(f"Glossary item {index} must be an object: {path}")
+        term = str(item.get("text", ""))
+        suggestion = str(item.get("suggest", "")).strip()
+        if not term:
+            raise FocusError(f"Glossary item {index} has an empty text: {path}")
+        if suggestion == term:
+            raise FocusError(f"Glossary item {index} suggests the same text: {path}")
+        items.append(
+            {
+                "text": term,
+                "suggest": suggestion,
+                "reason": str(item.get("reason", "")).strip(),
+                "category": str(item.get("category", "")).strip(),
+                "source": name,
+                "source_path": str(path),
+                "priority": priority,
+            }
+        )
+    return {"name": name, "path": str(path), "priority": priority, "items": items}
+
+
+def proofread_glossary_layers(args: argparse.Namespace) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    layers: list[dict[str, Any]] = []
+    layers.append(
+        load_glossary_layer(BUILTIN_GLOSSARY_DIR / "base.json", "基础词库", priority=10)
+    )
+    domains = list(dict.fromkeys(getattr(args, "domains", None) or []))
+    for domain in domains:
+        if domain not in BUILTIN_GLOSSARIES or domain == "base":
+            raise FocusError(f"Unknown glossary domain: {domain}")
+        layers.append(
+            load_glossary_layer(
+                BUILTIN_GLOSSARY_DIR / f"{domain}.json",
+                f"{domain} 词库",
+                priority=20,
+            )
+        )
+
+    personal_value = getattr(args, "personal_glossary", None)
+    use_default_personal = bool(getattr(args, "use_default_personal", True))
+    if personal_value:
+        personal_path = Path(personal_value).expanduser().resolve()
+        layers.append(load_glossary_layer(personal_path, "个人词库", priority=30))
+    elif use_default_personal and DEFAULT_PERSONAL_GLOSSARY.is_file():
+        layers.append(
+            load_glossary_layer(DEFAULT_PERSONAL_GLOSSARY.resolve(), "个人词库", priority=30)
+        )
+
+    legacy_value = getattr(args, "glossary", None)
+    if legacy_value:
+        legacy_path = Path(legacy_value).expanduser().resolve()
+        layers.append(load_glossary_layer(legacy_path, "自定义词库", priority=35))
+
+    project_value = getattr(args, "project_glossary", None)
+    if project_value:
+        project_path = Path(project_value).expanduser().resolve()
+        layers.append(load_glossary_layer(project_path, "项目词库", priority=40))
+
+    merged: dict[str, dict[str, Any]] = {}
+    for layer in sorted(layers, key=lambda item: int(item["priority"])):
+        for item in layer["items"]:
+            merged[item["text"]] = item
+    return layers, list(merged.values())
+
+
+def glossary_term_occurs(text: str, term: str) -> bool:
+    if term.isascii() and any(ch.isalnum() for ch in term):
+        pattern = rf"(?<![A-Za-z0-9_]){re.escape(term)}(?![A-Za-z0-9_])"
+        return re.search(pattern, text) is not None
+    return term in text
+
+
 def command_proofread(args: argparse.Namespace) -> None:
     srt = Path(args.srt).expanduser().resolve()
     cues = parse_srt(srt)
-    glossary: dict[str, Any] = {"version": 1, "forbidden_terms": []}
-    if args.glossary:
-        glossary = load_json(Path(args.glossary).expanduser().resolve())
-        if glossary.get("version") != 1:
-            raise FocusError("Only glossary schema version 1 is supported")
-    forbidden = glossary.get("forbidden_terms", [])
-    if not isinstance(forbidden, list):
-        raise FocusError("glossary forbidden_terms must be an array")
+    layers, forbidden = proofread_glossary_layers(args)
     lines = [
         "# SRT 文字校对",
         "",
         f"- 文件：`{srt}`",
         f"- SHA-256：`{sha256_file(srt)}`",
         f"- 字幕：{len(cues)} 条",
+        "- 输入边界：只校对带时间码的 SRT；未调用本地 ASR、OCR、Video Use 或剪口播。",
+        "- 词库优先级：项目 > 自定义 > 个人 > 场景 > 基础。词库只给建议，不自动改字。",
+        "- 已加载词库：" + "；".join(
+            f'{layer["name"]}（`{layer["path"]}`）' for layer in layers
+        ),
         "",
-        "| ID | 时间 | 原文 | 提示 |",
-        "|---:|---|---|---|",
+        "| ID | 时间 | 原文 | 建议 | 来源 |",
+        "|---:|---|---|---|---|",
     ]
     flagged = 0
     for cue in cues:
         notes = []
+        sources = []
         for item in forbidden:
             term = str(item.get("text", ""))
-            if term and term in cue["text"]:
+            if term and glossary_term_occurs(cue["text"], term):
                 suggestion = str(item.get("suggest", "")).strip()
                 reason = str(item.get("reason", "")).strip()
                 note = f"`{term}`"
@@ -337,16 +426,18 @@ def command_proofread(args: argparse.Namespace) -> None:
                 if reason:
                     note += f"（{reason}）"
                 notes.append(note)
+                sources.append(str(item.get("source", "")))
         if notes:
             flagged += 1
         lines.append(
             f'| {cue["cue_id"]} | {ms_clock(cue["start_ms"])}–{ms_clock(cue["end_ms"])} '
-            f'| {markdown_cell(cue["text"])} | {markdown_cell("；".join(notes))} |'
+            f'| {markdown_cell(cue["text"])} | {markdown_cell("；".join(notes))} '
+            f'| {markdown_cell("；".join(dict.fromkeys(sources)))} |'
         )
     lines.extend(
         [
             "",
-            f"标记 {flagged}/{len(cues)} 条。Agent 必须结合音频、项目术语和用户反馈逐条校对；脚本不会擅自改字。",
+            f"标记 {flagged}/{len(cues)} 条。Agent 只能结合 SRT 前后文、已加载词库、项目资料和用户反馈提出建议；脚本不会擅自改字，也不会把视频音频当作已核验文字来源。",
         ]
     )
     output = Path(args.output).expanduser().resolve()
@@ -354,6 +445,20 @@ def command_proofread(args: argparse.Namespace) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(json.dumps({"output": str(output), "cues": len(cues), "flagged": flagged}, ensure_ascii=False))
+
+
+def command_glossary_init(args: argparse.Namespace) -> None:
+    scope = str(args.scope)
+    output_value = getattr(args, "output", None)
+    if output_value:
+        output = Path(output_value).expanduser().resolve()
+    elif scope == "personal":
+        output = DEFAULT_PERSONAL_GLOSSARY.resolve()
+    else:
+        raise FocusError("--output is required for a project glossary")
+    name = "个人词库" if scope == "personal" else "项目词库"
+    write_json(output, {"version": 1, "name": name, "forbidden_terms": []})
+    print(json.dumps({"output": str(output), "scope": scope}, ensure_ascii=False))
 
 
 def replace_occurrence(text: str, find: str, replacement: str, occurrence: Any) -> tuple[str, int]:
@@ -1493,9 +1598,23 @@ def build_parser() -> argparse.ArgumentParser:
     doctor.set_defaults(func=command_doctor)
     proofread = sub.add_parser("proofread", help="build a cue-by-cue text review table")
     proofread.add_argument("--srt", required=True)
-    proofread.add_argument("--glossary")
+    proofread.add_argument("--domain", dest="domains", action="append", choices=["ai"])
+    proofread.add_argument("--personal-glossary")
+    proofread.add_argument("--project-glossary")
+    proofread.add_argument("--glossary", help="legacy custom glossary; prefer the personal/project flags")
+    proofread.add_argument(
+        "--no-default-personal",
+        dest="use_default_personal",
+        action="store_false",
+        default=True,
+        help=f"do not auto-load {DEFAULT_PERSONAL_GLOSSARY}",
+    )
     proofread.add_argument("--output", required=True)
     proofread.set_defaults(func=command_proofread)
+    glossary_init = sub.add_parser("glossary-init", help="create an empty personal or project glossary")
+    glossary_init.add_argument("--scope", choices=["personal", "project"], required=True)
+    glossary_init.add_argument("--output")
+    glossary_init.set_defaults(func=command_glossary_init)
     correct = sub.add_parser("correct", help="apply confirmed exact-text SRT corrections")
     correct.add_argument("--srt", required=True)
     correct.add_argument("--corrections", required=True)

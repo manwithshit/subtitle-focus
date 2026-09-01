@@ -13,7 +13,9 @@
   <img src="https://img.shields.io/badge/Privacy-Local_files_only-34d399.svg" alt="Local files only">
 </p>
 
-**subtitle-focus** is an Agent Skill plus a deterministic Python renderer. It reviews and locks SRT text, highlights meaning-bearing words, burns caption cards locally, extracts evidence from the final video, and registers one canonical delivery.
+**subtitle-focus** is an Agent Skill plus a deterministic Python renderer. It reviews a timestamped SRT with layered glossaries, locks confirmed text, highlights meaning-bearing words, burns caption cards locally, extracts evidence from the final video, and registers one canonical delivery.
+
+It deliberately starts from an exported SRT. It does not transcribe video, call Video Use, run local ASR/OCR, or infer timestamps from a plain MD transcript.
 
 ## Real output
 
@@ -55,6 +57,22 @@ A one-word correction can invalidate every derived artifact. In the production a
 
 The Skill stops for human approval after text corrections, highlight selection, and the short sample.
 
+## Layered glossaries
+
+The base glossary loads automatically. Add the bundled AI pack with `--domain ai`, keep reusable personal terms in `~/.config/subtitle-focus/glossary.json`, and pass a project glossary for the current production.
+
+```text
+project > legacy custom > personal > domain > base
+```
+
+Glossaries contain known-wrong forms and canonical suggestions. They never rewrite SRT text automatically. A project entry overrides lower layers only when it targets the same exact wrong form, and every review row records its source.
+
+```bash
+python3 skill/scripts/subtitle_focus.py glossary-init --scope personal
+python3 skill/scripts/subtitle_focus.py glossary-init \
+  --scope project --output /abs/project-glossary.json
+```
+
 ## Install
 
 ```bash
@@ -90,9 +108,12 @@ WORK=/abs/work
 
 python3 "$SCRIPT" proofread \
   --srt /abs/input.srt \
+  --domain ai \
+  --project-glossary /abs/project-glossary.json \
   --output "$WORK/text-review.md"
 
-# Draft corrections.json only after listening and project-term review.
+# Draft corrections.json only after reviewing SRT context, glossary provenance,
+# project evidence, and user corrections.
 python3 "$SCRIPT" correct \
   --srt /abs/input.srt \
   --corrections "$WORK/corrections.json" \
@@ -185,7 +206,8 @@ Optional handoff can copy the final SRT, generate a transcript, copy an existing
 | Command | Job |
 | --- | --- |
 | `doctor` | Check Pillow, fonts, FFmpeg, FFprobe, and overlay support |
-| `proofread` | Build a cue-by-cue text review with optional glossary flags |
+| `glossary-init` | Create an editable empty personal or project glossary |
+| `proofread` | Build a cue-by-cue review from layered, sourced glossary suggestions |
 | `correct` | Apply confirmed exact-text changes without changing timecodes |
 | `lock` | Freeze the approved SRT by hash |
 | `plan` | Segment a locked SRT |
@@ -210,7 +232,7 @@ python3 -m unittest discover -s tests -v
 python3 -m py_compile skill/scripts/subtitle_focus.py
 ```
 
-The test suite includes a real FFmpeg end-to-end render, stale-SRT rejection, reference-demo style provenance, corrected-cue frame coverage, final-video SHA binding, and handoff generation.
+The nine-test suite includes layered-glossary precedence, plain-MD rejection, a real FFmpeg end-to-end render, stale-SRT rejection, reference-demo style provenance, corrected-cue frame coverage, final-video SHA binding, and handoff generation.
 
 ## Defaults and limits
 
@@ -223,6 +245,8 @@ The test suite includes a real FFmpeg end-to-end render, stale-SRT rejection, re
 | Bubble | `#505050`, 69% opacity, 28% padding, 40% corner |
 
 - Source SRT and video are never replaced.
+- A timestamped SRT is required. Plain MD and video-only inputs stop before Gate 1.
+- No Video Use, 剪口播, Whisper, ASR, or OCR is invoked.
 - The renderer needs a CJK-capable font.
 - Full-length 4K-class encodes take time; the sample gate exists to catch layout errors first.
 - The repository ships no source footage. The README contains cropped final-output frames only.
