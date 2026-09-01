@@ -471,8 +471,12 @@ class SubtitleFocusTest(unittest.TestCase):
         review = self.work / "highlight-policy-review.md"
         focus.command_review(namespace(plan=str(highlighted), output=str(review)))
         review_text = review.read_text(encoding="utf-8")
-        self.assertIn("规则检查：通过", review_text)
-        self.assertIn("最长连续无重点：1 句", review_text)
+        self.assertIn("# 完整字幕稿", review_text)
+        self.assertIn("然后点击生成**华纹**", review_text)
+        self.assertIn("我用Kimi K3做了一个小工具", review_text)
+        self.assertIn("然后你还可以**3D** 地旋转它", review_text)
+        self.assertNotIn("| # |", review_text)
+        self.assertNotIn("未高亮：", review_text)
 
     def test_highlight_policy_allows_every_sentence_under_the_cap(self):
         corrected, _, _, plan_path = self.build_locked_plan()
@@ -506,8 +510,8 @@ class SubtitleFocusTest(unittest.TestCase):
         review = self.work / "cadence-invalid-review.md"
         focus.command_review(namespace(plan=str(highlighted), output=str(review)))
         review_text = review.read_text(encoding="utf-8")
-        self.assertIn("规则检查：需要调整", review_text)
-        self.assertIn("plain run: 2-1, 3-1", review_text)
+        self.assertIn("# 完整字幕稿（需要调整）", review_text)
+        self.assertIn("字幕段 2-1 → 3-1：连续 2 句没有重点", review_text)
 
     def test_highlight_policy_rejects_more_than_thirty_percent_per_sentence(self):
         corrected, _, _, plan_path = self.build_locked_plan()
@@ -526,8 +530,8 @@ class SubtitleFocusTest(unittest.TestCase):
         review = self.work / "coverage-invalid-review.md"
         focus.command_review(namespace(plan=str(highlighted), output=str(review)))
         review_text = review.read_text(encoding="utf-8")
-        self.assertIn("生成华纹 | 50.0%", review_text)
-        self.assertIn("segment 1-1 (50.0%)", review_text)
+        self.assertIn("然后点击**生成华纹**", review_text)
+        self.assertIn("字幕段 1-1：重点占比 50.0%，超过 30%", review_text)
         short_plan = {
             "segments": [
                 {

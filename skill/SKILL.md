@@ -33,11 +33,11 @@ SRT 校对锁定 → 高亮确认 → 样片确认 → 全片抽帧 → 交付�
 1. Run `plan --lock ...` with `--max-chars 16` unless the user asks otherwise.
 2. Draft `highlight.json` using [highlight-schema.md](references/highlight-schema.md).
 3. Run `apply` and `review`. Adjust the choices until the report passes both highlight rules, then run `validate`.
-4. Show the Markdown review table. Ask for cue ids to add, drop, or retarget.
+4. Send the user the complete caption manuscript in timeline order, with every proposed highlight marked directly in the sentence using Markdown bold. Do not send a separate keyword list or highlight table first. Ask the user to confirm the bold locations or name the sentences that need retargeting.
 
 Selection: meaning-bearing terms only. Treat each rendered caption segment as one sentence. Every adjacent pair must contain at least one highlighted segment, so a run of unhighlighted sentences can be at most one. Highlighting every sentence is allowed when it improves continuity. Within each sentence, all highlighted ranges combined must cover no more than 30% of non-whitespace visible characters. Never highlight a short sentence in full merely to satisfy cadence; leave it plain and highlight the adjacent longer sentence instead. If both constraints cannot be satisfied, report the conflicting segment ids for user review. Never rewrite the locked SRT during highlighting.
 
-**STOP.** Do not render until the user confirms the highlight list.
+**STOP.** Do not render until the user confirms the bolded complete manuscript.
 
 ## Gate 3 — 样片与参考图样式
 

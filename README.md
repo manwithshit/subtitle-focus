@@ -50,14 +50,14 @@ A one-word correction can invalidate every derived artifact. In the production a
 </p>
 
 1. **Proof + lock** — review every cue, apply only confirmed exact-text corrections, then lock the SRT by hash.
-2. **Highlights** — choose meaning-bearing terms, keep every adjacent pair from going completely plain, and cap each sentence's highlights at 30%.
+2. **Highlights** — choose meaning-bearing terms, then send one complete manuscript with those terms bolded in place; keep every adjacent pair from going completely plain and cap each sentence's highlights at 30%.
 3. **Sample** — keep the default vertical position at 82%, or derive a versioned override from a supplied reference screenshot.
 4. **Frame QA** — extract every corrected cue, every highlighted segment, and entry/middle/exit frames from the already-burned final video.
 5. **Delivery** — write one manifest with video, SRT, plan, style, correction, review, and handoff hashes.
 
 The Skill stops for human approval after text corrections, highlight selection, and the short sample.
 
-Highlight continuity is deterministic: at most one rendered caption segment may remain plain in a row. Every adjacent pair therefore contains a visual focus. Highlighting every sentence is acceptable, but the combined highlighted ranges inside any one sentence may not exceed 30% of its non-whitespace visible characters. Short sentences can remain plain; the adjacent longer sentence should carry the focus instead of painting the short sentence almost entirely yellow. The review report shows per-sentence coverage and plain runs, while validation and rendering fail closed on violations.
+Highlight continuity is deterministic: at most one rendered caption segment may remain plain in a row. Every adjacent pair therefore contains a visual focus. Highlighting every sentence is acceptable, but the combined highlighted ranges inside any one sentence may not exceed 30% of its non-whitespace visible characters. Short sentences can remain plain; the adjacent longer sentence should carry the focus instead of painting the short sentence almost entirely yellow. The review output is the full manuscript in timeline order with proposed highlights marked in Markdown bold, never a separate keyword list. Policy violations appear after the manuscript, while validation and rendering fail closed on violations.
 
 ## Layered glossaries
 
@@ -152,7 +152,7 @@ python3 "$SCRIPT" validate \
   --video /abs/input.mp4
 ```
 
-Show the correction and highlight tables to the user. Do not render before approval.
+Show the correction table first. At Gate 2, send the complete caption manuscript with proposed highlights bolded in place; do not send a separate keyword list. Do not render before approval.
 
 ## Reference-demo layout
 

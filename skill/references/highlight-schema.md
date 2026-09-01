@@ -35,7 +35,7 @@ Rules:
 - The policy is evaluated on rendered caption segments, not raw SRT blocks. Every pair of adjacent segments must include at least one segment with a highlight; two consecutive plain segments fail validation.
 - Within one segment, all highlighted ranges combined must cover at most 30% of its non-whitespace visible characters. This is a per-segment ceiling, not a whole-video average.
 - A short segment may remain plain. Prefer highlighting a meaning-bearing phrase in its adjacent longer segment instead of highlighting the short segment in full.
-- `apply` always writes the candidate plan so `review` can show policy violations. `validate`, `preview`, `render`, `frames`, and `deliver` reject a plan that violates cadence or the 30% ceiling.
+- `apply` always writes the candidate plan so `review` can show the complete manuscript with proposed highlights rendered as Markdown bold. It must not output a separate keyword list or keyword-first table. Policy violations appear after the manuscript. `validate`, `preview`, `render`, `frames`, and `deliver` reject a plan that violates cadence or the 30% ceiling.
 
 ## caption_plan.json
 

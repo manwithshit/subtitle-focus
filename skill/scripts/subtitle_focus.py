@@ -1140,6 +1140,24 @@ def ms_clock(ms: int) -> str:
     return f"{minutes}:{seconds - minutes * 60:05.2f}"
 
 
+def markdown_escape_inline(text: str) -> str:
+    special = set("\\`*_{}[]<>()#+-.!|>")
+    return "".join(f"\\{char}" if char in special else char for char in text)
+
+
+def markdown_bold_segment(segment: dict[str, Any]) -> str:
+    text = segment["text"]
+    parts: list[str] = []
+    cursor = 0
+    for item in segment.get("highlights", []):
+        start, end = int(item["start"]), int(item["end"])
+        parts.append(markdown_escape_inline(text[cursor:start]))
+        parts.append(f"**{markdown_escape_inline(text[start:end])}**")
+        cursor = end
+    parts.append(markdown_escape_inline(text[cursor:]))
+    return "".join(parts)
+
+
 def command_review(args: argparse.Namespace) -> None:
     plan = load_json(Path(args.plan).expanduser().resolve())
     errors = validate_plan(plan)
@@ -1148,35 +1166,23 @@ def command_review(args: argparse.Namespace) -> None:
     verify_plan_source(plan)
     segments = plan["segments"]
     policy_errors, policy = validate_highlight_policy(plan)
-    reports_by_id = {item["segment_id"]: item for item in policy["segment_reports"]}
-    highlighted = [s for s in segments if s.get("highlights")]
-    plain = [s for s in segments if not s.get("highlights")]
     lines = [
-        f"高亮 {len(highlighted)}/{len(segments)} 句",
-        f'规则检查：{"通过" if not policy_errors else "需要调整"}',
-        f'最长连续无重点：{policy["longest_plain_run"]} 句（上限 1 句）',
-        f'单句重点占比上限：{MAX_HIGHLIGHT_COVERAGE:.0%}',
+        "# 完整字幕稿" if not policy_errors else "# 完整字幕稿（需要调整）",
         "",
-        "| # | 时间 | 原文 | 高亮 | 单句占比 |",
-        "|---|---|---|---|---|",
     ]
-    for segment in highlighted:
-        marks = " / ".join(item["text"] for item in segment["highlights"])
-        coverage = reports_by_id[segment["id"]]["coverage"]
-        lines.append(
-            f"| {segment['cue_id']} | {ms_clock(segment['start_ms'])} | {segment['text']} | "
-            f"{marks} | {coverage:.1%} |"
-        )
-    if plain:
+    for segment in segments:
+        lines.append(markdown_bold_segment(segment))
         lines.append("")
-        lines.append("未高亮：")
-        for segment in plain:
-            lines.append(f"- {segment['cue_id']} {segment['text']}")
     if policy_errors:
-        lines.append("")
-        lines.append("需要调整：")
-        for error in policy_errors:
-            lines.append(f"- {error}")
+        lines.extend(["## 需要调整", ""])
+        for item in policy["over_coverage"]:
+            lines.append(
+                f'- 字幕段 {item["segment_id"]}：重点占比 {item["coverage"]:.1%}，超过 30%'
+            )
+        for run in policy["invalid_plain_runs"]:
+            lines.append(
+                f'- 字幕段 {" → ".join(run)}：连续 {len(run)} 句没有重点'
+            )
     text = "\n".join(lines) + "\n"
     if args.output:
         output = Path(args.output).expanduser().resolve()
