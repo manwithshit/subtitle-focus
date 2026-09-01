@@ -87,6 +87,21 @@ class SubtitleFocusTest(unittest.TestCase):
         )
         return corrected, review, lock, plan
 
+    def apply_highlights(self, plan_path, items, name="caption-plan-highlighted.json"):
+        highlights = self.work / f"{name}.highlights.json"
+        highlights.write_text(
+            json.dumps(
+                {"version": 1, "global_terms": [], "items": items},
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        output = self.work / name
+        focus.command_apply(
+            namespace(plan=str(plan_path), highlights=str(highlights), output=str(output))
+        )
+        return output
+
     def test_correction_preserves_timing_and_lock_detects_stale_source(self):
         corrected, review, _, plan_path = self.build_locked_plan()
         cues = focus.parse_srt(corrected)
@@ -438,6 +453,94 @@ class SubtitleFocusTest(unittest.TestCase):
         self.assertEqual(no_reference["center_y_ratio"], 0.82)
         self.assertIsNone(no_reference["_meta"]["reference_demo"])
 
+    def test_highlight_policy_allows_one_plain_sentence_between_highlights(self):
+        corrected, _, _, plan_path = self.build_locked_plan()
+        highlighted = self.apply_highlights(
+            plan_path,
+            [
+                {"cue_id": 1, "text": "华纹"},
+                {"cue_id": 3, "text": "3D"},
+            ],
+        )
+        focus.command_validate(
+            namespace(plan=str(highlighted), srt=str(corrected), video=None, tolerance_ms=100)
+        )
+        plan = focus.load_json(highlighted)
+        self.assertEqual(plan["statistics"]["longest_plain_run"], 1)
+        self.assertLessEqual(plan["statistics"]["max_segment_highlight_coverage"], 0.30)
+        review = self.work / "highlight-policy-review.md"
+        focus.command_review(namespace(plan=str(highlighted), output=str(review)))
+        review_text = review.read_text(encoding="utf-8")
+        self.assertIn("规则检查：通过", review_text)
+        self.assertIn("最长连续无重点：1 句", review_text)
+
+    def test_highlight_policy_allows_every_sentence_under_the_cap(self):
+        corrected, _, _, plan_path = self.build_locked_plan()
+        highlighted = self.apply_highlights(
+            plan_path,
+            [
+                {"cue_id": 1, "text": "华纹"},
+                {"cue_id": 2, "text": "K3"},
+                {"cue_id": 3, "text": "3D"},
+            ],
+            "every-sentence-highlighted.json",
+        )
+        focus.command_validate(
+            namespace(plan=str(highlighted), srt=str(corrected), video=None, tolerance_ms=100)
+        )
+        plan = focus.load_json(highlighted)
+        self.assertEqual(plan["statistics"]["longest_plain_run"], 0)
+        self.assertEqual(plan["statistics"]["highlight_segment_count"], 3)
+
+    def test_highlight_policy_rejects_two_consecutive_plain_sentences(self):
+        corrected, _, _, plan_path = self.build_locked_plan()
+        highlighted = self.apply_highlights(
+            plan_path,
+            [{"cue_id": 1, "text": "华纹"}],
+            "cadence-invalid.json",
+        )
+        with self.assertRaisesRegex(focus.FocusError, "highlight cadence"):
+            focus.command_validate(
+                namespace(plan=str(highlighted), srt=str(corrected), video=None, tolerance_ms=100)
+            )
+        review = self.work / "cadence-invalid-review.md"
+        focus.command_review(namespace(plan=str(highlighted), output=str(review)))
+        review_text = review.read_text(encoding="utf-8")
+        self.assertIn("规则检查：需要调整", review_text)
+        self.assertIn("plain run: 2-1, 3-1", review_text)
+
+    def test_highlight_policy_rejects_more_than_thirty_percent_per_sentence(self):
+        corrected, _, _, plan_path = self.build_locked_plan()
+        highlighted = self.apply_highlights(
+            plan_path,
+            [
+                {"cue_id": 1, "text": "生成华纹"},
+                {"cue_id": 3, "text": "3D"},
+            ],
+            "coverage-invalid.json",
+        )
+        with self.assertRaisesRegex(focus.FocusError, "coverage exceeds 30%"):
+            focus.command_validate(
+                namespace(plan=str(highlighted), srt=str(corrected), video=None, tolerance_ms=100)
+            )
+        review = self.work / "coverage-invalid-review.md"
+        focus.command_review(namespace(plan=str(highlighted), output=str(review)))
+        review_text = review.read_text(encoding="utf-8")
+        self.assertIn("生成华纹 | 50.0%", review_text)
+        self.assertIn("segment 1-1 (50.0%)", review_text)
+        short_plan = {
+            "segments": [
+                {
+                    "id": "short-1",
+                    "cue_id": 1,
+                    "text": "好的",
+                    "highlights": [{"start": 0, "end": 2, "text": "好的"}],
+                }
+            ]
+        }
+        short_errors, _ = focus.validate_highlight_policy(short_plan)
+        self.assertTrue(any("(100.0%)" in error for error in short_errors))
+
     @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"), "ffmpeg required")
     def test_end_to_end_render_frames_and_delivery(self):
         corrected, _, _, plan_path = self.build_locked_plan()
@@ -448,8 +551,8 @@ class SubtitleFocusTest(unittest.TestCase):
                     "version": 1,
                     "global_terms": [],
                     "items": [
-                        {"cue_id": 1, "text": "生成华纹"},
-                        {"cue_id": 2, "text": "Kimi K3"},
+                        {"cue_id": 1, "text": "华纹"},
+                        {"cue_id": 2, "text": "K3"},
                     ],
                 },
                 ensure_ascii=False,

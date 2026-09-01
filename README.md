@@ -50,12 +50,14 @@ A one-word correction can invalidate every derived artifact. In the production a
 </p>
 
 1. **Proof + lock** — review every cue, apply only confirmed exact-text corrections, then lock the SRT by hash.
-2. **Highlights** — choose meaning-bearing terms and show a cue-level review table.
+2. **Highlights** — choose meaning-bearing terms, keep every adjacent pair from going completely plain, and cap each sentence's highlights at 30%.
 3. **Sample** — keep the default vertical position at 82%, or derive a versioned override from a supplied reference screenshot.
 4. **Frame QA** — extract every corrected cue, every highlighted segment, and entry/middle/exit frames from the already-burned final video.
 5. **Delivery** — write one manifest with video, SRT, plan, style, correction, review, and handoff hashes.
 
 The Skill stops for human approval after text corrections, highlight selection, and the short sample.
+
+Highlight continuity is deterministic: at most one rendered caption segment may remain plain in a row. Every adjacent pair therefore contains a visual focus. Highlighting every sentence is acceptable, but the combined highlighted ranges inside any one sentence may not exceed 30% of its non-whitespace visible characters. Short sentences can remain plain; the adjacent longer sentence should carry the focus instead of painting the short sentence almost entirely yellow. The review report shows per-sentence coverage and plain runs, while validation and rendering fail closed on violations.
 
 ## Layered glossaries
 
@@ -141,13 +143,13 @@ python3 "$SCRIPT" apply \
   --highlights "$WORK/highlight.json" \
   --output "$WORK/caption-plan.highlighted.json"
 
-python3 "$SCRIPT" validate \
-  --plan "$WORK/caption-plan.highlighted.json" \
-  --video /abs/input.mp4
-
 python3 "$SCRIPT" review \
   --plan "$WORK/caption-plan.highlighted.json" \
   --output "$WORK/highlight-review.md"
+
+python3 "$SCRIPT" validate \
+  --plan "$WORK/caption-plan.highlighted.json" \
+  --video /abs/input.mp4
 ```
 
 Show the correction and highlight tables to the user. Do not render before approval.
@@ -238,7 +240,7 @@ python3 -m py_compile skill/scripts/subtitle_focus.py
 python3 scripts/build_skill_package.py
 ```
 
-The eleven-test suite includes explicit glossary choices, report path redaction, multiline/repeated-space preservation, layered-glossary precedence, plain-MD rejection, a real FFmpeg end-to-end render, stale-SRT rejection, reference-demo style provenance, corrected-cue frame coverage, final-video SHA binding, and handoff generation. The package builder includes tracked Skill files only and rejects conventional personal/project glossary filenames.
+The fifteen-test suite includes highlight cadence, all-sentence highlighting under the cap, short-sentence and per-sentence 30% rejection, explicit glossary choices, report path redaction, multiline/repeated-space preservation, layered-glossary precedence, plain-MD rejection, a real FFmpeg end-to-end render, stale-SRT rejection, reference-demo style provenance, corrected-cue frame coverage, final-video SHA binding, and handoff generation. The package builder includes tracked Skill files only and rejects conventional personal/project glossary filenames.
 
 ## Defaults and limits
 
@@ -248,6 +250,8 @@ The eleven-test suite includes explicit glossary choices, report path redaction,
 | Body size | 4.8% of frame height |
 | Caption center | 82% of frame height |
 | Highlight | 1.34× body, `#FFD600`, dark outline |
+| Highlight cadence | At most one consecutive plain caption segment |
+| Highlight coverage | At most 30% per caption segment |
 | Bubble | `#505050`, 69% opacity, 28% padding, 40% corner |
 
 - Source SRT and video are never replaced.

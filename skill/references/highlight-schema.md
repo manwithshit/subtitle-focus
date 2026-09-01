@@ -32,6 +32,10 @@ Rules:
 - `global_terms` applies to every exact occurrence. Keep it empty unless repetition is intentional.
 - Multiple items may share one `cue_id` when two phrases both deserve emphasis (`卡顿感` and `不衔接感`).
 - Highlight the headword, not the qualifier: `Prompt` not `第二段 Prompt`, unless the qualifier is the point.
+- The policy is evaluated on rendered caption segments, not raw SRT blocks. Every pair of adjacent segments must include at least one segment with a highlight; two consecutive plain segments fail validation.
+- Within one segment, all highlighted ranges combined must cover at most 30% of its non-whitespace visible characters. This is a per-segment ceiling, not a whole-video average.
+- A short segment may remain plain. Prefer highlighting a meaning-bearing phrase in its adjacent longer segment instead of highlighting the short segment in full.
+- `apply` always writes the candidate plan so `review` can show policy violations. `validate`, `preview`, `render`, `frames`, and `deliver` reject a plan that violates cadence or the 30% ceiling.
 
 ## caption_plan.json
 
@@ -66,3 +70,15 @@ The script owns this schema. Generate it only from a confirmed SRT lock. Do not 
 `start` is inclusive and `end` is exclusive, using Python/JSON string character offsets. The renderer verifies that `text[start:end]` still equals the stored highlight text.
 
 Every downstream command also verifies the current source SRT SHA. If the SRT changes, discard the plan and regenerate it from a new confirmed lock.
+
+Applied plans also record this deterministic policy:
+
+```json
+{
+  "highlight_policy": {
+    "version": 1,
+    "max_highlight_coverage": 0.3,
+    "max_consecutive_plain_segments": 1
+  }
+}
+```

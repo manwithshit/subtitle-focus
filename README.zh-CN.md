@@ -50,12 +50,14 @@
 </p>
 
 1. **校对锁定**：逐条核对字幕，只执行用户确认的精确替换，然后按 SHA 锁定 SRT。
-2. **高亮确认**：只选择真正承载意义的词，并输出按字幕 ID 审核的表格。
+2. **高亮确认**：只选择真正承载意义的词，任意连续两句至少有一句带重点，且单句重点不超过 30%。
 3. **样片**：没有参考图时保持默认高度 82%；收到参考截图时，生成项目独立的可配置样式。
 4. **抽帧检查**：从已经烧录字幕的最终成片中，抽取所有修改字幕、所有高亮字幕和首中尾画面。
 5. **交付登记**：用唯一 manifest 记录视频、SRT、计划、样式、修改、抽帧和 handoff 的路径与指纹。
 
 文字修改、高亮选择和样片都必须经过用户确认，不能由 Agent 自己跳闸。
+
+高亮连续性由脚本确定性检查：最多只能连续一条渲染字幕不带重点，因此任意相邻两句里至少有一句带重点。必要时每句都可以有重点，但同一句内所有重点合计不得超过该句非空白可见字符的 30%。短句允许不加重点，应优先把重点放到相邻的较长句，而不是把短句大面积染黄。审核表会显示逐句占比和连续空白段；不符合规则时，验证和渲染都会直接拦截。
 
 ## 分层词库
 
@@ -140,13 +142,13 @@ python3 "$SCRIPT" apply \
   --highlights "$WORK/highlight.json" \
   --output "$WORK/caption-plan.highlighted.json"
 
-python3 "$SCRIPT" validate \
-  --plan "$WORK/caption-plan.highlighted.json" \
-  --video /abs/input.mp4
-
 python3 "$SCRIPT" review \
   --plan "$WORK/caption-plan.highlighted.json" \
   --output "$WORK/highlight-review.md"
+
+python3 "$SCRIPT" validate \
+  --plan "$WORK/caption-plan.highlighted.json" \
+  --video /abs/input.mp4
 ```
 
 把字幕修改表和高亮表交给用户确认。确认前不渲染。
@@ -237,7 +239,7 @@ python3 -m py_compile skill/scripts/subtitle_focus.py
 python3 scripts/build_skill_package.py
 ```
 
-11 项测试覆盖词库显式选择、报告路径隐藏、SRT 多行与连续空格保留、分层词库优先级、纯 MD 拒绝、真实 FFmpeg 端到端烧录、旧 SRT 自动失效、参考图来源记录、修改字幕抽帧、最终成片 SHA 绑定和 handoff 生成。安装包只收录 Git 已追踪的 Skill 文件，并拒绝常见个人／项目词库文件名。
+15 项测试覆盖高亮连续性、每句高亮、短句与单句 30% 上限、词库显式选择、报告路径隐藏、SRT 多行与连续空格保留、分层词库优先级、纯 MD 拒绝、真实 FFmpeg 端到端烧录、旧 SRT 自动失效、参考图来源记录、修改字幕抽帧、最终成片 SHA 绑定和 handoff 生成。安装包只收录 Git 已追踪的 Skill 文件，并拒绝常见个人／项目词库文件名。
 
 ## 默认值与边界
 
@@ -247,6 +249,8 @@ python3 scripts/build_skill_package.py
 | 正文字号 | 画面高度的 4.8% |
 | 字幕中心 | 画面高度的 82% |
 | 高亮 | 正文 1.34 倍、`#FFD600`、深色描边 |
+| 高亮连续性 | 最多连续一条字幕无重点 |
+| 单句重点占比 | 每条字幕最多 30% |
 | 底条 | `#505050`、69% 不透明度、28% 边距、40% 圆角 |
 
 - 原 SRT 和原视频永远不覆盖。

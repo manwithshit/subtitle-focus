@@ -38,6 +38,8 @@ SKILL_ROOT = Path(__file__).resolve().parents[1]
 BUILTIN_GLOSSARY_DIR = SKILL_ROOT / "assets" / "glossaries"
 DEFAULT_PERSONAL_GLOSSARY = Path("~/.config/subtitle-focus/glossary.json").expanduser()
 BUILTIN_GLOSSARIES = {"base", "ai"}
+MAX_HIGHLIGHT_COVERAGE = 0.30
+MAX_CONSECUTIVE_PLAIN_SEGMENTS = 1
 
 
 class FocusError(RuntimeError):
@@ -664,6 +666,73 @@ def add_range(segment: dict[str, Any], start: int, end: int) -> None:
         segment["highlights"].append(entry)
 
 
+def visible_char_count(text: str) -> int:
+    return sum(not char.isspace() for char in text)
+
+
+def highlight_policy_report(plan: dict[str, Any]) -> dict[str, Any]:
+    segments = plan.get("segments", [])
+    segment_reports: list[dict[str, Any]] = []
+    plain_runs: list[list[str]] = []
+    current_plain_run: list[str] = []
+    for segment in segments:
+        text = str(segment.get("text", ""))
+        highlighted_chars = sum(
+            visible_char_count(text[int(item["start"]) : int(item["end"])])
+            for item in segment.get("highlights", [])
+        )
+        visible_chars = visible_char_count(text)
+        coverage = highlighted_chars / max(1, visible_chars)
+        segment_reports.append(
+            {
+                "segment_id": str(segment.get("id", "")),
+                "cue_id": int(segment.get("cue_id", 0)),
+                "visible_chars": visible_chars,
+                "highlighted_chars": highlighted_chars,
+                "coverage": coverage,
+            }
+        )
+        if highlighted_chars:
+            if current_plain_run:
+                plain_runs.append(current_plain_run)
+                current_plain_run = []
+        else:
+            current_plain_run.append(str(segment.get("id", "")))
+    if current_plain_run:
+        plain_runs.append(current_plain_run)
+    over_coverage = [
+        item for item in segment_reports if item["coverage"] > MAX_HIGHLIGHT_COVERAGE + 1e-9
+    ]
+    longest_plain_run = max((len(run) for run in plain_runs), default=0)
+    invalid_plain_runs = [
+        run for run in plain_runs if len(run) > MAX_CONSECUTIVE_PLAIN_SEGMENTS
+    ]
+    return {
+        "valid": not over_coverage and not invalid_plain_runs,
+        "max_highlight_coverage": MAX_HIGHLIGHT_COVERAGE,
+        "max_consecutive_plain_segments": MAX_CONSECUTIVE_PLAIN_SEGMENTS,
+        "longest_plain_run": longest_plain_run,
+        "segment_reports": segment_reports,
+        "over_coverage": over_coverage,
+        "invalid_plain_runs": invalid_plain_runs,
+    }
+
+
+def validate_highlight_policy(plan: dict[str, Any]) -> tuple[list[str], dict[str, Any]]:
+    report = highlight_policy_report(plan)
+    errors = [
+        f'highlight coverage exceeds 30% in segment {item["segment_id"]} '
+        f'({item["coverage"]:.1%})'
+        for item in report["over_coverage"]
+    ]
+    errors.extend(
+        "highlight cadence requires at least one highlighted segment in every adjacent pair; "
+        f'plain run: {", ".join(run)}'
+        for run in report["invalid_plain_runs"]
+    )
+    return errors, report
+
+
 def command_apply(args: argparse.Namespace) -> None:
     plan = load_json(Path(args.plan).expanduser().resolve())
     verify_plan_source(plan)
@@ -722,10 +791,20 @@ def command_apply(args: argparse.Namespace) -> None:
         for highlight in segment["highlights"]:
             previous_end = highlight["end"]
     plan["highlight_source"] = str(Path(args.highlights).expanduser().resolve())
+    policy = highlight_policy_report(plan)
+    plan["highlight_policy"] = {
+        "version": 1,
+        "max_highlight_coverage": MAX_HIGHLIGHT_COVERAGE,
+        "max_consecutive_plain_segments": MAX_CONSECUTIVE_PLAIN_SEGMENTS,
+    }
     plan["statistics"] = {
         **plan.get("statistics", {}),
         "highlight_segment_count": sum(bool(s["highlights"]) for s in segments),
         "highlight_range_count": sum(len(s["highlights"]) for s in segments),
+        "max_segment_highlight_coverage": round(
+            max((item["coverage"] for item in policy["segment_reports"]), default=0), 4
+        ),
+        "longest_plain_run": policy["longest_plain_run"],
     }
     write_json(Path(args.output).expanduser().resolve(), plan)
     print(json.dumps(plan["statistics"], ensure_ascii=False))
@@ -774,6 +853,9 @@ def command_validate(args: argparse.Namespace) -> None:
     errors = validate_plan(plan)
     if errors:
         raise FocusError("; ".join(errors))
+    policy_errors, policy = validate_highlight_policy(plan)
+    if policy_errors:
+        raise FocusError("; ".join(policy_errors))
     source = verify_plan_source(
         plan, Path(args.srt).expanduser().resolve() if args.srt else None
     )
@@ -788,14 +870,20 @@ def command_validate(args: argparse.Namespace) -> None:
                 f'{round(video_result["duration"] * 1000)}ms'
             )
     highlighted_chars = sum(
-        h["end"] - h["start"] for segment in segments for h in segment.get("highlights", [])
+        visible_char_count(segment["text"][h["start"] : h["end"]])
+        for segment in segments
+        for h in segment.get("highlights", [])
     )
-    visible_chars = sum(len(segment["text"].replace(" ", "")) for segment in segments)
+    visible_chars = sum(visible_char_count(segment["text"]) for segment in segments)
     result = {
         "valid": True,
         "segments": len(segments),
         "highlight_ranges": sum(len(s.get("highlights", [])) for s in segments),
         "highlight_coverage": round(highlighted_chars / max(1, visible_chars), 4),
+        "max_segment_highlight_coverage": round(
+            max((item["coverage"] for item in policy["segment_reports"]), default=0), 4
+        ),
+        "longest_plain_run": policy["longest_plain_run"],
         "source_srt_sha256": source["sha256"],
         "cue_count": source["cue_count"],
     }
@@ -1059,24 +1147,36 @@ def command_review(args: argparse.Namespace) -> None:
         raise FocusError("; ".join(errors))
     verify_plan_source(plan)
     segments = plan["segments"]
+    policy_errors, policy = validate_highlight_policy(plan)
+    reports_by_id = {item["segment_id"]: item for item in policy["segment_reports"]}
     highlighted = [s for s in segments if s.get("highlights")]
     plain = [s for s in segments if not s.get("highlights")]
     lines = [
         f"高亮 {len(highlighted)}/{len(segments)} 句",
+        f'规则检查：{"通过" if not policy_errors else "需要调整"}',
+        f'最长连续无重点：{policy["longest_plain_run"]} 句（上限 1 句）',
+        f'单句重点占比上限：{MAX_HIGHLIGHT_COVERAGE:.0%}',
         "",
-        "| # | 时间 | 原文 | 高亮 |",
-        "|---|---|---|---|",
+        "| # | 时间 | 原文 | 高亮 | 单句占比 |",
+        "|---|---|---|---|---|",
     ]
     for segment in highlighted:
         marks = " / ".join(item["text"] for item in segment["highlights"])
+        coverage = reports_by_id[segment["id"]]["coverage"]
         lines.append(
-            f"| {segment['cue_id']} | {ms_clock(segment['start_ms'])} | {segment['text']} | {marks} |"
+            f"| {segment['cue_id']} | {ms_clock(segment['start_ms'])} | {segment['text']} | "
+            f"{marks} | {coverage:.1%} |"
         )
     if plain:
         lines.append("")
         lines.append("未高亮：")
         for segment in plain:
             lines.append(f"- {segment['cue_id']} {segment['text']}")
+    if policy_errors:
+        lines.append("")
+        lines.append("需要调整：")
+        for error in policy_errors:
+            lines.append(f"- {error}")
     text = "\n".join(lines) + "\n"
     if args.output:
         output = Path(args.output).expanduser().resolve()
@@ -1092,6 +1192,9 @@ def command_preview(args: argparse.Namespace) -> None:
     errors = validate_plan(plan)
     if errors:
         raise FocusError("; ".join(errors))
+    policy_errors, _ = validate_highlight_policy(plan)
+    if policy_errors:
+        raise FocusError("; ".join(policy_errors))
     verify_plan_source(plan)
     validate_style(style)
     segments = plan["segments"]
@@ -1207,6 +1310,9 @@ def command_render(args: argparse.Namespace) -> None:
     errors = validate_plan(plan)
     if errors:
         raise FocusError("; ".join(errors))
+    policy_errors, _ = validate_highlight_policy(plan)
+    if policy_errors:
+        raise FocusError("; ".join(policy_errors))
     source = verify_plan_source(plan)
     validate_style(style)
     probe = probe_video(video)
@@ -1382,6 +1488,9 @@ def command_frames(args: argparse.Namespace) -> None:
     errors = validate_plan(plan)
     if errors:
         raise FocusError("; ".join(errors))
+    policy_errors, _ = validate_highlight_policy(plan)
+    if policy_errors:
+        raise FocusError("; ".join(policy_errors))
     source = verify_plan_source(plan)
     validate_style(style)
     probe = probe_video(video)
@@ -1471,6 +1580,9 @@ def command_deliver(args: argparse.Namespace) -> None:
     errors = validate_plan(plan)
     if errors:
         raise FocusError("; ".join(errors))
+    policy_errors, _ = validate_highlight_policy(plan)
+    if policy_errors:
+        raise FocusError("; ".join(policy_errors))
     source = verify_plan_source(plan, srt)
     validate_style(style)
     cues = parse_srt(srt)

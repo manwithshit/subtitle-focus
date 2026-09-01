@@ -32,10 +32,10 @@ SRT 校对锁定 → 高亮确认 → 样片确认 → 全片抽帧 → 交付�
 
 1. Run `plan --lock ...` with `--max-chars 16` unless the user asks otherwise.
 2. Draft `highlight.json` using [highlight-schema.md](references/highlight-schema.md).
-3. Run `apply`, `validate`, and `review`.
+3. Run `apply` and `review`. Adjust the choices until the report passes both highlight rules, then run `validate`.
 4. Show the Markdown review table. Ask for cue ids to add, drop, or retarget.
 
-Selection: meaning-bearing terms only. Default one phrase per cue; zero is allowed. Keep coverage under about 35% of visible characters. Never rewrite the locked SRT during highlighting.
+Selection: meaning-bearing terms only. Treat each rendered caption segment as one sentence. Every adjacent pair must contain at least one highlighted segment, so a run of unhighlighted sentences can be at most one. Highlighting every sentence is allowed when it improves continuity. Within each sentence, all highlighted ranges combined must cover no more than 30% of non-whitespace visible characters. Never highlight a short sentence in full merely to satisfy cadence; leave it plain and highlight the adjacent longer sentence instead. If both constraints cannot be satisfied, report the conflicting segment ids for user review. Never rewrite the locked SRT during highlighting.
 
 **STOP.** Do not render until the user confirms the highlight list.
 
@@ -77,8 +77,8 @@ python3 "$SCRIPT" correct --srt /abs/in.srt --corrections /abs/corrections.json 
 python3 "$SCRIPT" lock --srt /abs/locked-text.srt --output /abs/srt-lock.json --confirmed
 python3 "$SCRIPT" plan --srt /abs/locked-text.srt --lock /abs/srt-lock.json --output /abs/caption-plan.json
 python3 "$SCRIPT" apply --plan /abs/caption-plan.json --highlights /abs/highlight.json --output /abs/caption-plan.highlighted.json
-python3 "$SCRIPT" validate --plan /abs/caption-plan.highlighted.json --video /abs/input.mp4
 python3 "$SCRIPT" review --plan /abs/caption-plan.highlighted.json --output /abs/highlight-review.md
+python3 "$SCRIPT" validate --plan /abs/caption-plan.highlighted.json --video /abs/input.mp4
 python3 "$SCRIPT" style --base skill/assets/default-style.json --reference-image /abs/demo.png --center-y-ratio 0.73 --output /abs/style-v1.json
 python3 "$SCRIPT" preview --video /abs/input.mp4 --plan /abs/caption-plan.highlighted.json --style /abs/style-v1.json --cue 2 --output /abs/cue-2.png
 python3 "$SCRIPT" render --video /abs/input.mp4 --plan /abs/caption-plan.highlighted.json --style /abs/style-v1.json --output /abs/edit/final-subtitled.mp4
@@ -106,3 +106,5 @@ Visual numbers and typography rules are in [visual-spec.md](references/visual-sp
 | “No glossary file means no decision is needed” | Gate 1 still requires explicit personal and project skip choices. |
 | “General typography rules are obvious” | Preserve the SRT. Add only user-requested or enumerated rules. |
 | “Flattening SRT lines is harmless” | The render plan may derive one display line, but the locked SRT must preserve unmentioned whitespace. |
+| “Four plain sentences in a row are acceptable” | Every adjacent pair needs at least one highlighted segment; validation blocks longer plain runs. |
+| “A short sentence can be highlighted in full” | Per-sentence highlighted characters must stay at or below 30%; use an adjacent longer sentence for cadence. |
