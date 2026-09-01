@@ -5,3 +5,6 @@ __pycache__/
 *.mp4
 *.mov
 *.srt
+personal-glossary.json
+project-glossary.json
+*.private-glossary.json

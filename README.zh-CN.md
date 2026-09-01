@@ -59,13 +59,17 @@
 
 ## 分层词库
 
-基础词库默认加载；AI 场景使用 `--domain ai`；长期使用的个人词放在 `~/.config/subtitle-focus/glossary.json`；当前视频独有词汇通过项目词库传入。
+基础词库默认加载；AI 场景使用 `--domain ai`；长期使用的个人词放在 `~/.config/subtitle-focus/glossary.json`；当前视频独有词汇通过项目词库传入。安装时不要求提供个人词库或项目词库。
 
 ```text
 项目 > 旧版自定义 > 个人 > 场景 > 基础
 ```
 
 词库保存“已知错误形式 → 标准写法”。它只生成带来源的纠正建议，绝不自动改写 SRT。同一个错误形式发生冲突时，项目词库覆盖低优先级词库。
+
+进入 Gate 1 前，用户必须分别明确选择“使用／不使用”个人词库和项目词库。需要的是明确决定，不是强制创建文件。校对报告只显示逻辑层级和 SHA-256，不公开词库绝对路径或用户自定义名称。
+
+项目不开发通用的大小写、数字／单位、代词、标点或中英空格规则引擎。只有用户提出或真实项目验证过的规则，才通过枚举加入。现有中英混排分段和共同基线绘制保持不变。
 
 ```bash
 python3 skill/scripts/subtitle_focus.py glossary-init --scope personal
@@ -109,7 +113,8 @@ WORK=/abs/work
 python3 "$SCRIPT" proofread \
   --srt /abs/input.srt \
   --domain ai \
-  --project-glossary /abs/project-glossary.json \
+  --no-personal-glossary \
+  --no-project-glossary \
   --output "$WORK/text-review.md"
 
 # 根据 SRT 前后文、词库来源、项目资料和用户纠正整理 corrections.json。
@@ -229,9 +234,10 @@ python3 "$SCRIPT" deliver \
 ```bash
 python3 -m unittest discover -s tests -v
 python3 -m py_compile skill/scripts/subtitle_focus.py
+python3 scripts/build_skill_package.py
 ```
 
-9 项测试覆盖分层词库优先级、纯 MD 拒绝、真实 FFmpeg 端到端烧录、旧 SRT 自动失效、参考图来源记录、修改字幕抽帧、最终成片 SHA 绑定和 handoff 生成。
+11 项测试覆盖词库显式选择、报告路径隐藏、SRT 多行与连续空格保留、分层词库优先级、纯 MD 拒绝、真实 FFmpeg 端到端烧录、旧 SRT 自动失效、参考图来源记录、修改字幕抽帧、最终成片 SHA 绑定和 handoff 生成。安装包只收录 Git 已追踪的 Skill 文件，并拒绝常见个人／项目词库文件名。
 
 ## 默认值与边界
 
@@ -246,6 +252,9 @@ python3 -m py_compile skill/scripts/subtitle_focus.py
 - 原 SRT 和原视频永远不覆盖。
 - 必须提供带时间码的 SRT；纯 MD 和只有视频的输入会在第一阶段前停止。
 - 不调用 Video Use、剪口播、Whisper、ASR 或 OCR。
+- Gate 1 必须明确选择使用或跳过个人词库和项目词库。
+- Git 会忽略名为 `personal-glossary.json`、`project-glossary.json` 或 `*.private-glossary.json` 的本地词库文件。
+- 纠错会保留未涉及的 SRT 换行和连续空格；后续中英混排布局只生成派生计划，不改写锁定 SRT。
 - 渲染需要能显示中文的字体。
 - 接近 4K 的完整编码需要时间，先用样片抓布局错误。
 - 仓库不包含源视频；README 只保留裁切后的最终效果截图。

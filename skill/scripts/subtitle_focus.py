@@ -103,8 +103,8 @@ def parse_srt(path: Path) -> list[dict[str, Any]]:
         cue_id = seq
         if time_line > 0 and lines[time_line - 1].strip().isdigit():
             cue_id = int(lines[time_line - 1].strip())
-        text = clean_caption(lines[time_line + 1 :])
-        if not text:
+        text = "\n".join(lines[time_line + 1 :])
+        if not text.strip():
             continue
         start_ms = ms_from_timecode(match.group("start"))
         end_ms = ms_from_timecode(match.group("end"))
@@ -306,7 +306,7 @@ def allocate_times(start_ms: int, end_ms: int, parts: list[str]) -> list[tuple[i
 
 
 def markdown_cell(value: Any) -> str:
-    return str(value).replace("|", "\\|").replace("\n", " ")
+    return str(value).replace("|", "\\|").replace("\n", "<br>")
 
 
 def load_glossary_layer(path: Path, fallback_name: str, priority: int) -> dict[str, Any]:
@@ -316,7 +316,7 @@ def load_glossary_layer(path: Path, fallback_name: str, priority: int) -> dict[s
     forbidden = glossary.get("forbidden_terms", [])
     if not isinstance(forbidden, list):
         raise FocusError(f"glossary forbidden_terms must be an array: {path}")
-    name = str(glossary.get("name", fallback_name)).strip() or fallback_name
+    declared_name = str(glossary.get("name", fallback_name)).strip() or fallback_name
     items: list[dict[str, Any]] = []
     for index, item in enumerate(forbidden, start=1):
         if not isinstance(item, dict):
@@ -333,15 +333,24 @@ def load_glossary_layer(path: Path, fallback_name: str, priority: int) -> dict[s
                 "suggest": suggestion,
                 "reason": str(item.get("reason", "")).strip(),
                 "category": str(item.get("category", "")).strip(),
-                "source": name,
+                "source": fallback_name,
                 "source_path": str(path),
                 "priority": priority,
             }
         )
-    return {"name": name, "path": str(path), "priority": priority, "items": items}
+    return {
+        "name": fallback_name,
+        "declared_name": declared_name,
+        "path": str(path),
+        "sha256": sha256_file(path),
+        "priority": priority,
+        "items": items,
+    }
 
 
-def proofread_glossary_layers(args: argparse.Namespace) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def proofread_glossary_layers(
+    args: argparse.Namespace,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, str]]:
     layers: list[dict[str, Any]] = []
     layers.append(
         load_glossary_layer(BUILTIN_GLOSSARY_DIR / "base.json", "基础词库", priority=10)
@@ -353,20 +362,32 @@ def proofread_glossary_layers(args: argparse.Namespace) -> tuple[list[dict[str, 
         layers.append(
             load_glossary_layer(
                 BUILTIN_GLOSSARY_DIR / f"{domain}.json",
-                f"{domain} 词库",
+                "AI 场景词库" if domain == "ai" else f"{domain} 词库",
                 priority=20,
             )
         )
 
     personal_value = getattr(args, "personal_glossary", None)
-    use_default_personal = bool(getattr(args, "use_default_personal", True))
+    use_default_personal = bool(getattr(args, "use_default_personal", False))
+    no_personal = bool(getattr(args, "no_personal_glossary", False))
+    if sum(bool(value) for value in (personal_value, use_default_personal, no_personal)) != 1:
+        raise FocusError(
+            "Gate 1 requires an explicit personal glossary choice: provide --personal-glossary, "
+            "use --use-default-personal, or confirm --no-personal-glossary"
+        )
     if personal_value:
         personal_path = Path(personal_value).expanduser().resolve()
         layers.append(load_glossary_layer(personal_path, "个人词库", priority=30))
-    elif use_default_personal and DEFAULT_PERSONAL_GLOSSARY.is_file():
+        personal_choice = "使用已提供的个人词库"
+    elif use_default_personal:
+        if not DEFAULT_PERSONAL_GLOSSARY.is_file():
+            raise FocusError(f"Default personal glossary does not exist: {DEFAULT_PERSONAL_GLOSSARY}")
         layers.append(
             load_glossary_layer(DEFAULT_PERSONAL_GLOSSARY.resolve(), "个人词库", priority=30)
         )
+        personal_choice = "使用默认个人词库"
+    else:
+        personal_choice = "明确不使用"
 
     legacy_value = getattr(args, "glossary", None)
     if legacy_value:
@@ -374,15 +395,27 @@ def proofread_glossary_layers(args: argparse.Namespace) -> tuple[list[dict[str, 
         layers.append(load_glossary_layer(legacy_path, "自定义词库", priority=35))
 
     project_value = getattr(args, "project_glossary", None)
+    no_project = bool(getattr(args, "no_project_glossary", False))
+    if sum(bool(value) for value in (project_value, no_project)) != 1:
+        raise FocusError(
+            "Gate 1 requires an explicit project glossary choice: provide --project-glossary "
+            "or confirm --no-project-glossary"
+        )
     if project_value:
         project_path = Path(project_value).expanduser().resolve()
         layers.append(load_glossary_layer(project_path, "项目词库", priority=40))
+        project_choice = "使用已提供的项目词库"
+    else:
+        project_choice = "明确不使用"
 
     merged: dict[str, dict[str, Any]] = {}
     for layer in sorted(layers, key=lambda item: int(item["priority"])):
         for item in layer["items"]:
             merged[item["text"]] = item
-    return layers, list(merged.values())
+    return layers, list(merged.values()), {
+        "personal": personal_choice,
+        "project": project_choice,
+    }
 
 
 def glossary_term_occurs(text: str, term: str) -> bool:
@@ -395,17 +428,19 @@ def glossary_term_occurs(text: str, term: str) -> bool:
 def command_proofread(args: argparse.Namespace) -> None:
     srt = Path(args.srt).expanduser().resolve()
     cues = parse_srt(srt)
-    layers, forbidden = proofread_glossary_layers(args)
+    layers, forbidden, choices = proofread_glossary_layers(args)
     lines = [
         "# SRT 文字校对",
         "",
-        f"- 文件：`{srt}`",
+        f"- 文件：`{srt.name}`",
         f"- SHA-256：`{sha256_file(srt)}`",
         f"- 字幕：{len(cues)} 条",
         "- 输入边界：只校对带时间码的 SRT；未调用本地 ASR、OCR、Video Use 或剪口播。",
+        f'- 个人词库选择：{choices["personal"]}',
+        f'- 项目词库选择：{choices["project"]}',
         "- 词库优先级：项目 > 自定义 > 个人 > 场景 > 基础。词库只给建议，不自动改字。",
         "- 已加载词库：" + "；".join(
-            f'{layer["name"]}（`{layer["path"]}`）' for layer in layers
+            f'{layer["name"]}（SHA-256：`{layer["sha256"]}`）' for layer in layers
         ),
         "",
         "| ID | 时间 | 原文 | 建议 | 来源 |",
@@ -526,8 +561,8 @@ def command_correct(args: argparse.Namespace) -> None:
     lines = [
         "# SRT 修改确认",
         "",
-        f"- 原文件：`{srt}`",
-        f"- 新文件：`{output}`",
+        f"- 原文件：`{srt.name}`",
+        f"- 新文件：`{output.name}`",
         f"- 时间轴：未修改",
         "",
         "| ID | 时间 | 修改前 | 修改后 | 原因 |",
@@ -579,7 +614,8 @@ def command_plan(args: argparse.Namespace) -> None:
     cues = parse_srt(srt)
     segments: list[dict[str, Any]] = []
     for cue in cues:
-        parts = split_caption(cue["text"], args.max_chars)
+        display_text = clean_caption(cue["text"].splitlines())
+        parts = split_caption(display_text, args.max_chars)
         times = allocate_times(cue["start_ms"], cue["end_ms"], parts)
         for part_no, (text, timing) in enumerate(zip(parts, times), start=1):
             segments.append(
@@ -1599,16 +1635,14 @@ def build_parser() -> argparse.ArgumentParser:
     proofread = sub.add_parser("proofread", help="build a cue-by-cue text review table")
     proofread.add_argument("--srt", required=True)
     proofread.add_argument("--domain", dest="domains", action="append", choices=["ai"])
-    proofread.add_argument("--personal-glossary")
-    proofread.add_argument("--project-glossary")
+    personal_choice = proofread.add_mutually_exclusive_group(required=True)
+    personal_choice.add_argument("--personal-glossary")
+    personal_choice.add_argument("--use-default-personal", action="store_true")
+    personal_choice.add_argument("--no-personal-glossary", action="store_true")
+    project_choice = proofread.add_mutually_exclusive_group(required=True)
+    project_choice.add_argument("--project-glossary")
+    project_choice.add_argument("--no-project-glossary", action="store_true")
     proofread.add_argument("--glossary", help="legacy custom glossary; prefer the personal/project flags")
-    proofread.add_argument(
-        "--no-default-personal",
-        dest="use_default_personal",
-        action="store_false",
-        default=True,
-        help=f"do not auto-load {DEFAULT_PERSONAL_GLOSSARY}",
-    )
     proofread.add_argument("--output", required=True)
     proofread.set_defaults(func=command_proofread)
     glossary_init = sub.add_parser("glossary-init", help="create an empty personal or project glossary")

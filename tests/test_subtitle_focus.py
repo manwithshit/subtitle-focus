@@ -118,7 +118,17 @@ class SubtitleFocusTest(unittest.TestCase):
         output = self.work / "proofread.md"
         before = self.source_srt.read_bytes()
         focus.command_proofread(
-            namespace(srt=str(self.source_srt), glossary=str(glossary), output=str(output))
+            namespace(
+                srt=str(self.source_srt),
+                glossary=str(glossary),
+                domains=[],
+                personal_glossary=None,
+                use_default_personal=False,
+                no_personal_glossary=True,
+                project_glossary=None,
+                no_project_glossary=True,
+                output=str(output),
+            )
         )
         self.assertEqual(before, self.source_srt.read_bytes())
         text = output.read_text(encoding="utf-8")
@@ -178,8 +188,10 @@ class SubtitleFocusTest(unittest.TestCase):
                 glossary=None,
                 domains=["ai"],
                 personal_glossary=str(personal),
-                project_glossary=str(project),
                 use_default_personal=False,
+                no_personal_glossary=False,
+                project_glossary=str(project),
+                no_project_glossary=False,
                 output=str(output),
             )
         )
@@ -190,7 +202,42 @@ class SubtitleFocusTest(unittest.TestCase):
         self.assertIn("`clawd code` → `Claude Code 项目版`", text)
         self.assertNotIn("`clawd code` → `Claude Code`（个人常用产品名）", text)
         self.assertNotIn("`ai` → `AI`", text)
-        self.assertIn("当前项目词库", text)
+        self.assertIn("项目词库", text)
+        self.assertNotIn(str(personal), text)
+        self.assertNotIn(str(project), text)
+        self.assertNotIn(str(source), text)
+        self.assertNotIn("我的常用词", text)
+        self.assertNotIn("当前项目词库", text)
+
+    def test_proofread_requires_explicit_personal_and_project_choices(self):
+        with self.assertRaisesRegex(focus.FocusError, "explicit personal glossary choice"):
+            focus.command_proofread(
+                namespace(
+                    srt=str(self.source_srt),
+                    glossary=None,
+                    domains=[],
+                    personal_glossary=None,
+                    use_default_personal=False,
+                    no_personal_glossary=False,
+                    project_glossary=None,
+                    no_project_glossary=False,
+                    output=str(self.work / "missing-personal-choice.md"),
+                )
+            )
+        with self.assertRaisesRegex(focus.FocusError, "explicit project glossary choice"):
+            focus.command_proofread(
+                namespace(
+                    srt=str(self.source_srt),
+                    glossary=None,
+                    domains=[],
+                    personal_glossary=None,
+                    use_default_personal=False,
+                    no_personal_glossary=True,
+                    project_glossary=None,
+                    no_project_glossary=False,
+                    output=str(self.work / "missing-project-choice.md"),
+                )
+            )
 
     def test_proofread_rejects_plain_markdown_without_timestamps(self):
         transcript = self.work / "transcript.md"
@@ -202,8 +249,10 @@ class SubtitleFocusTest(unittest.TestCase):
                     glossary=None,
                     domains=[],
                     personal_glossary=None,
-                    project_glossary=None,
                     use_default_personal=False,
+                    no_personal_glossary=True,
+                    project_glossary=None,
+                    no_project_glossary=True,
                     output=str(self.work / "should-not-exist.md"),
                 )
             )
@@ -250,12 +299,67 @@ class SubtitleFocusTest(unittest.TestCase):
                     personal_glossary=None,
                     project_glossary=None,
                     use_default_personal=True,
+                    no_personal_glossary=False,
+                    no_project_glossary=True,
                     output=str(auto_review),
                 )
             )
             self.assertIn("`常错词` → `标准词`", auto_review.read_text(encoding="utf-8"))
         finally:
             focus.DEFAULT_PERSONAL_GLOSSARY = original_default
+
+    def test_correction_preserves_multiline_text_and_repeated_spaces(self):
+        source = self.work / "multiline.srt"
+        source.write_text(
+            """1
+00:00:00,100 --> 00:00:01,500
+第一行  保留
+第二行Kimi K3
+""",
+            encoding="utf-8",
+        )
+        corrections = self.work / "multiline-corrections.json"
+        corrections.write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "items": [
+                        {
+                            "cue_id": 1,
+                            "find": "保留",
+                            "replace": "保留字",
+                            "reason": "测试精确替换",
+                        }
+                    ],
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        corrected = self.work / "multiline-corrected.srt"
+        review = self.work / "multiline-review.md"
+        focus.command_correct(
+            namespace(
+                srt=str(source),
+                corrections=str(corrections),
+                output=str(corrected),
+                review=str(review),
+            )
+        )
+        output_text = corrected.read_text(encoding="utf-8")
+        self.assertIn("第一行  保留字\n第二行Kimi K3", output_text)
+        review_text = review.read_text(encoding="utf-8")
+        self.assertIn("第一行  保留<br>第二行Kimi K3", review_text)
+        self.assertNotIn(str(source), review_text)
+        self.assertNotIn(str(corrected), review_text)
+        lock = self.work / "multiline-lock.json"
+        focus.command_lock(namespace(srt=str(corrected), output=str(lock), confirmed=True))
+        plan = self.work / "multiline-plan.json"
+        focus.command_plan(
+            namespace(srt=str(corrected), lock=str(lock), output=str(plan), max_chars=50.0)
+        )
+        segments = focus.load_json(plan)["segments"]
+        self.assertEqual(segments[0]["text"], "第一行 保留字 第二行Kimi K3")
 
     def test_lock_requires_explicit_confirmation(self):
         with self.assertRaisesRegex(focus.FocusError, "without --confirmed"):

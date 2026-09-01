@@ -2,7 +2,27 @@
 
 ## Layered glossaries
 
-`proofread` requires a timestamped SRT. It does not call ASR, OCR, Video Use, or any speech-cutting Skill. The bundled base glossary loads automatically; add `--domain ai`, a personal glossary, or a project glossary when relevant.
+`proofread` requires a timestamped SRT. It does not call ASR, OCR, Video Use, or any speech-cutting Skill. The bundled base glossary loads automatically; add `--domain ai` when relevant.
+
+At Gate 1, make one explicit choice for each user-controlled layer:
+
+```bash
+# No personal or project glossary for this run.
+python3 scripts/subtitle_focus.py proofread \
+  --srt /abs/input.srt \
+  --no-personal-glossary \
+  --no-project-glossary \
+  --output /abs/text-review.md
+
+# Use the default personal glossary and a project glossary.
+python3 scripts/subtitle_focus.py proofread \
+  --srt /abs/input.srt \
+  --use-default-personal \
+  --project-glossary /abs/project-glossary.json \
+  --output /abs/text-review.md
+```
+
+The choices are required at project intake, not installation. `proofread` refuses to run when either choice is missing. An explicit personal path may replace `--use-default-personal`.
 
 Precedence is deterministic:
 
@@ -19,7 +39,9 @@ python3 scripts/subtitle_focus.py glossary-init --scope personal
 python3 scripts/subtitle_focus.py glossary-init --scope project --output /abs/project-glossary.json
 ```
 
-The default personal location is `~/.config/subtitle-focus/glossary.json` and loads automatically when it exists. An explicit `--personal-glossary` replaces that default path for the run.
+The default personal location is `~/.config/subtitle-focus/glossary.json`, but it loads only after `--use-default-personal`. Installation never creates or reads it automatically.
+
+The Markdown review records logical layer names, SHA-256 values, and the two explicit choices. It omits glossary absolute paths and user-defined glossary names. Local delivery manifests may still contain operational file paths.
 
 ## glossary.json
 
@@ -40,6 +62,8 @@ The default personal location is `~/.config/subtitle-focus/glossary.json` and lo
 
 `text` is an exact known-wrong form. `suggest` is the proposed canonical form. `reason` and `category` are optional audit metadata. Do not put a correct canonical term in `text`, and do not use full-sentence libraries for automatic rewriting.
 
+There is no general capitalization, number/unit, pronoun, punctuation, or CJK/Latin spacing engine. Add only concrete variants requested by users or evidenced by real projects. The existing mixed-script renderer and segmentation behavior stay separate from text correction.
+
 ## corrections.json
 
 Every correction targets one cue and one exact string. `occurrence` is `"all"` or a 1-based integer; default is `1`.
@@ -59,7 +83,7 @@ Every correction targets one cue and one exact string. `occurrence` is `"all"` o
 }
 ```
 
-`correct` changes text only and serializes the original cue ids and timecodes unchanged. It fails when the cue or exact source text cannot be found.
+`correct` changes only the declared exact strings and serializes the original cue ids and timecodes unchanged. Unmentioned internal line breaks and repeated spaces remain intact. It fails when the cue or exact source text cannot be found. The later caption plan may derive a single display line for the existing mixed-script layout; that derived layout does not rewrite the locked SRT.
 
 ## srt-lock.json
 

@@ -59,13 +59,17 @@ The Skill stops for human approval after text corrections, highlight selection, 
 
 ## Layered glossaries
 
-The base glossary loads automatically. Add the bundled AI pack with `--domain ai`, keep reusable personal terms in `~/.config/subtitle-focus/glossary.json`, and pass a project glossary for the current production.
+The base glossary loads automatically. Add the bundled AI pack with `--domain ai`, keep reusable personal terms in `~/.config/subtitle-focus/glossary.json`, and pass a project glossary for the current production. Personal and project glossaries are not requested during installation.
 
 ```text
 project > legacy custom > personal > domain > base
 ```
 
 Glossaries contain known-wrong forms and canonical suggestions. They never rewrite SRT text automatically. A project entry overrides lower layers only when it targets the same exact wrong form, and every review row records its source.
+
+Before Gate 1, the user must explicitly choose to use or skip both the personal and project glossary layers. This records the decision without forcing either file to exist. The review shows logical layer names and hashes, not glossary absolute paths or user-defined names.
+
+The project deliberately has no general capitalization, number/unit, pronoun, punctuation, or CJK/Latin spacing engine. Add only real, enumerated corrections requested by users. Existing mixed-script segmentation and baseline rendering remain unchanged.
 
 ```bash
 python3 skill/scripts/subtitle_focus.py glossary-init --scope personal
@@ -109,7 +113,8 @@ WORK=/abs/work
 python3 "$SCRIPT" proofread \
   --srt /abs/input.srt \
   --domain ai \
-  --project-glossary /abs/project-glossary.json \
+  --no-personal-glossary \
+  --no-project-glossary \
   --output "$WORK/text-review.md"
 
 # Draft corrections.json only after reviewing SRT context, glossary provenance,
@@ -230,9 +235,10 @@ Schemas and visual rules:
 ```bash
 python3 -m unittest discover -s tests -v
 python3 -m py_compile skill/scripts/subtitle_focus.py
+python3 scripts/build_skill_package.py
 ```
 
-The nine-test suite includes layered-glossary precedence, plain-MD rejection, a real FFmpeg end-to-end render, stale-SRT rejection, reference-demo style provenance, corrected-cue frame coverage, final-video SHA binding, and handoff generation.
+The eleven-test suite includes explicit glossary choices, report path redaction, multiline/repeated-space preservation, layered-glossary precedence, plain-MD rejection, a real FFmpeg end-to-end render, stale-SRT rejection, reference-demo style provenance, corrected-cue frame coverage, final-video SHA binding, and handoff generation. The package builder includes tracked Skill files only and rejects conventional personal/project glossary filenames.
 
 ## Defaults and limits
 
@@ -247,6 +253,9 @@ The nine-test suite includes layered-glossary precedence, plain-MD rejection, a 
 - Source SRT and video are never replaced.
 - A timestamped SRT is required. Plain MD and video-only inputs stop before Gate 1.
 - No Video Use, 剪口播, Whisper, ASR, or OCR is invoked.
+- Personal and project glossary use must be explicitly selected or skipped at Gate 1.
+- Local glossary filenames matching `personal-glossary.json`, `project-glossary.json`, or `*.private-glossary.json` are ignored by Git.
+- Corrections preserve unmentioned SRT line breaks and repeated spaces; mixed-script layout is derived later without rewriting the lock.
 - The renderer needs a CJK-capable font.
 - Full-length 4K-class encodes take time; the sample gate exists to catch layout errors first.
 - The repository ships no source footage. The README contains cropped final-output frames only.

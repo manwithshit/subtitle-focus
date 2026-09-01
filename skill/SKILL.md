@@ -5,7 +5,7 @@ description: Use when the user has a timestamped SRT and wants to proofread it w
 
 # Subtitle Focus
 
-Turn a reviewed, timestamped SRT into short caption cards and a traceable final delivery. The agent decides what the words mean from SRT context, loaded glossaries, project evidence, and user corrections; the bundled script owns deterministic flags, exact replacement, source locking, layout, rendering, review frames, and hashes. Source SRT and video are read-only.
+Turn a reviewed, timestamped SRT into short caption cards and a traceable final delivery. The agent decides what the words mean from SRT context, loaded glossaries, project evidence, and user corrections; the bundled script owns deterministic flags, exact replacement, source locking, mixed CJK/Latin layout, rendering, review frames, and hashes. Source SRT and video are read-only.
 
 Require an exported SRT. A video-only input or a plain line-by-line MD transcript has no accepted timeline in this Skill. Stop and ask the user to export SRT; do not call Video Use, 剪口播, local Whisper, ASR, or OCR.
 
@@ -19,11 +19,12 @@ SRT 校对锁定 → 高亮确认 → 样片确认 → 全片抽帧 → 交付�
 
 1. Run `doctor` before first use on a machine.
 2. Require a timestamped SRT. Reject plain MD/transcript input and video-only transcription requests.
-3. Run `proofread`. The base glossary loads automatically; add `--domain ai` when relevant. Load the user's personal glossary and the current project glossary when supplied. Read [text-lock-schema.md](references/text-lock-schema.md) for layering and schema.
-4. Inspect every cue using SRT neighbors, loaded glossary provenance, project vocabulary, product names, capitalization, numbers, pronouns, project files, and user corrections. Do not claim the actual spoken audio was verified unless the user separately supplies such evidence outside this Skill.
-5. Draft `corrections.json`. Glossary matches are suggestions, never automatic edits. Never rewrite silently.
-6. Run `correct`; show the cue-level before/after table to the user.
-7. After explicit text approval, run `lock --confirmed`.
+3. Ask for two explicit choices at project intake: use a personal glossary or explicitly skip it; use a project glossary or explicitly skip it. Do not ask during installation, and do not start formal proofreading until both choices are recorded by the `proofread` flags.
+4. Run `proofread`. The base glossary loads automatically; add `--domain ai` when relevant. Read [text-lock-schema.md](references/text-lock-schema.md) for the explicit choices, layering, privacy behavior, and schema.
+5. Inspect every cue using SRT neighbors, loaded glossary provenance, project vocabulary, product names, project files, and user corrections. Only apply spelling, capitalization, number, unit, pronoun, or spacing rules when an actual user/project rule or enumerated glossary entry exists. Do not invent a general normalization policy.
+6. Draft `corrections.json`. Glossary matches are suggestions, never automatic edits. Never rewrite silently.
+7. Run `correct`; show the cue-level before/after table to the user. The output must preserve unmentioned line breaks and repeated spaces in the SRT text.
+8. After explicit text approval, run `lock --confirmed`.
 
 **STOP.** Do not plan highlights from an unlocked SRT. Any byte change to the SRT invalidates its lock, caption plan, sample, and full render. Regenerate them.
 
@@ -71,7 +72,7 @@ SCRIPT=skill/scripts/subtitle_focus.py
 
 python3 "$SCRIPT" doctor
 python3 "$SCRIPT" glossary-init --scope personal
-python3 "$SCRIPT" proofread --srt /abs/in.srt --domain ai --project-glossary /abs/project-glossary.json --output /abs/text-review.md
+python3 "$SCRIPT" proofread --srt /abs/in.srt --domain ai --no-personal-glossary --no-project-glossary --output /abs/text-review.md
 python3 "$SCRIPT" correct --srt /abs/in.srt --corrections /abs/corrections.json --output /abs/locked-text.srt --review /abs/corrections-review.md
 python3 "$SCRIPT" lock --srt /abs/locked-text.srt --output /abs/srt-lock.json --confirmed
 python3 "$SCRIPT" plan --srt /abs/locked-text.srt --lock /abs/srt-lock.json --output /abs/caption-plan.json
@@ -102,3 +103,6 @@ Visual numbers and typography rules are in [visual-spec.md](references/visual-sp
 | “The final filename tells us what it contains” | Only the delivery manifest is authoritative. |
 | “The video or MD is enough to recover timing” | This Skill requires exported SRT and does not run ASR/OCR. |
 | “A glossary match is certainly correct” | It is a sourced suggestion. Show it and wait for text approval. |
+| “No glossary file means no decision is needed” | Gate 1 still requires explicit personal and project skip choices. |
+| “General typography rules are obvious” | Preserve the SRT. Add only user-requested or enumerated rules. |
+| “Flattening SRT lines is harmless” | The render plan may derive one display line, but the locked SRT must preserve unmentioned whitespace. |
