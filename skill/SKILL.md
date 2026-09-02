@@ -21,6 +21,7 @@ SRT 校对锁定 → 高亮确认 → 样片确认 → 全片抽帧 → 交付�
 2. Require a timestamped SRT. Reject plain MD/transcript input and video-only transcription requests.
 3. Ask for two explicit choices at project intake: use a personal glossary or explicitly skip it; use a project glossary or explicitly skip it. Do not ask during installation, and do not start formal proofreading until both choices are recorded by the `proofread` flags.
 4. Run `proofread`. The base glossary loads automatically; add `--domain ai` when relevant. Read [text-lock-schema.md](references/text-lock-schema.md) for the explicit choices, layering, privacy behavior, and schema.
+   The base/domain boundary and public-source review policy are documented in [glossary-sources.md](references/glossary-sources.md).
 5. Inspect every cue using SRT neighbors, loaded glossary provenance, project vocabulary, product names, project files, and user corrections. Only apply spelling, capitalization, number, unit, pronoun, or spacing rules when an actual user/project rule or enumerated glossary entry exists. Do not invent a general normalization policy.
 6. Draft `corrections.json`. Glossary matches are suggestions, never automatic edits. Never rewrite silently.
 7. Run `correct`; show the cue-level before/after table to the user. The output must preserve unmentioned line breaks and repeated spaces in the SRT text.
@@ -32,10 +33,10 @@ SRT 校对锁定 → 高亮确认 → 样片确认 → 全片抽帧 → 交付�
 
 1. Run `plan --lock ...` with `--max-chars 16` unless the user asks otherwise.
 2. Draft `highlight.json` using [highlight-schema.md](references/highlight-schema.md).
-3. Run `apply` and `review`. Adjust the choices until the report passes both highlight rules, then run `validate`.
+3. Run `apply` and `review`. Adjust the choices until the cadence report passes, then run `validate`.
 4. Send the user the complete caption manuscript in timeline order, with every proposed highlight marked directly in the sentence using Markdown bold. Do not send a separate keyword list or highlight table first. Ask the user to confirm the bold locations or name the sentences that need retargeting.
 
-Selection: meaning-bearing terms only. Treat each rendered caption segment as one sentence. Every adjacent pair must contain at least one highlighted segment, so a run of unhighlighted sentences can be at most one. Highlighting every sentence is allowed when it improves continuity. Within each sentence, all highlighted ranges combined must cover no more than 30% of non-whitespace visible characters. Never highlight a short sentence in full merely to satisfy cadence; leave it plain and highlight the adjacent longer sentence instead. If both constraints cannot be satisfied, report the conflicting segment ids for user review. Never rewrite the locked SRT during highlighting.
+Selection: meaning-bearing complete words or phrases only. Treat each rendered caption segment as one sentence. Every adjacent pair must contain at least one highlighted segment, so a run of unhighlighted sentences can be at most one. Highlighting every sentence is allowed when it improves continuity, and a short semantically atomic sentence may be highlighted in full. Do not split a word, product name, or phrase merely to reduce a percentage. Do not highlight filler, transitions, or low-information words just to satisfy cadence. Coverage is reported for review but never blocks a plan. If cadence cannot be satisfied with a meaningful highlight, report the conflicting segment ids for user review. Never rewrite the locked SRT during highlighting.
 
 **STOP.** Do not render until the user confirms the bolded complete manuscript.
 
@@ -47,6 +48,7 @@ Selection: meaning-bearing terms only. Treat each rendered caption segment as on
 4. Render a 10–15 second clip starting at the first highlight.
 5. Run `preview --video ...` for CJK, Latin, and mixed highlights so stills use the target video's real dimensions.
 6. Inspect baseline, overlap, clipping, phone-frame safe area, avatar avoidance, and reference-demo alignment.
+7. Run `validate --video ... --style ...` to measure every caption with the actual video dimensions and selected font. The renderer may shrink a caption to `font_size_min`; a caption that still exceeds the safe pixel width fails.
 
 **STOP.** Full render is forbidden until the user accepts the sample. Style changes create `style-vN.json`; text changes return to Gate 1.
 
@@ -78,8 +80,8 @@ python3 "$SCRIPT" lock --srt /abs/locked-text.srt --output /abs/srt-lock.json --
 python3 "$SCRIPT" plan --srt /abs/locked-text.srt --lock /abs/srt-lock.json --output /abs/caption-plan.json
 python3 "$SCRIPT" apply --plan /abs/caption-plan.json --highlights /abs/highlight.json --output /abs/caption-plan.highlighted.json
 python3 "$SCRIPT" review --plan /abs/caption-plan.highlighted.json --output /abs/highlight-review.md
-python3 "$SCRIPT" validate --plan /abs/caption-plan.highlighted.json --video /abs/input.mp4
 python3 "$SCRIPT" style --base skill/assets/default-style.json --reference-image /abs/demo.png --center-y-ratio 0.73 --output /abs/style-v1.json
+python3 "$SCRIPT" validate --plan /abs/caption-plan.highlighted.json --video /abs/input.mp4 --style /abs/style-v1.json
 python3 "$SCRIPT" preview --video /abs/input.mp4 --plan /abs/caption-plan.highlighted.json --style /abs/style-v1.json --cue 2 --output /abs/cue-2.png
 python3 "$SCRIPT" render --video /abs/input.mp4 --plan /abs/caption-plan.highlighted.json --style /abs/style-v1.json --output /abs/edit/final-subtitled.mp4
 python3 "$SCRIPT" frames --video /abs/edit/final-subtitled.mp4 --already-burned --plan /abs/caption-plan.highlighted.json --style /abs/style-v1.json --corrections /abs/corrections.json --output-dir /abs/edit/review-frames
@@ -107,4 +109,4 @@ Visual numbers and typography rules are in [visual-spec.md](references/visual-sp
 | “General typography rules are obvious” | Preserve the SRT. Add only user-requested or enumerated rules. |
 | “Flattening SRT lines is harmless” | The render plan may derive one display line, but the locked SRT must preserve unmentioned whitespace. |
 | “Four plain sentences in a row are acceptable” | Every adjacent pair needs at least one highlighted segment; validation blocks longer plain runs. |
-| “A short sentence can be highlighted in full” | Per-sentence highlighted characters must stay at or below 30%; use an adjacent longer sentence for cadence. |
+| “A short sentence cannot be highlighted in full” | It may be fully highlighted when the whole sentence is one meaningful point; coverage remains informational. |

@@ -50,18 +50,20 @@ A one-word correction can invalidate every derived artifact. In the production a
 </p>
 
 1. **Proof + lock** — review every cue, apply only confirmed exact-text corrections, then lock the SRT by hash.
-2. **Highlights** — choose meaning-bearing terms, then send one complete manuscript with those terms bolded in place; keep every adjacent pair from going completely plain and cap each sentence's highlights at 30%.
+2. **Highlights** — choose complete meaning-bearing words or phrases, then send one complete manuscript with those terms bolded in place; keep every adjacent pair from going completely plain.
 3. **Sample** — keep the default vertical position at 82%, or derive a versioned override from a supplied reference screenshot.
 4. **Frame QA** — extract every corrected cue, every highlighted segment, and entry/middle/exit frames from the already-burned final video.
 5. **Delivery** — write one manifest with video, SRT, plan, style, correction, review, and handoff hashes.
 
 The Skill stops for human approval after text corrections, highlight selection, and the short sample.
 
-Highlight continuity is deterministic: at most one rendered caption segment may remain plain in a row. Every adjacent pair therefore contains a visual focus. Highlighting every sentence is acceptable, but the combined highlighted ranges inside any one sentence may not exceed 30% of its non-whitespace visible characters. Short sentences can remain plain; the adjacent longer sentence should carry the focus instead of painting the short sentence almost entirely yellow. The review output is the full manuscript in timeline order with proposed highlights marked in Markdown bold, never a separate keyword list. Policy violations appear after the manuscript, while validation and rendering fail closed on violations.
+Highlight continuity is deterministic: at most one rendered caption segment may remain plain in a row. Highlights must be complete words, product names, or meaningful phrases; the Skill must not split a word to satisfy a percentage or choose filler merely to satisfy cadence. A short sentence may be highlighted in full when the entire sentence is one semantic point. Coverage remains visible as review metadata but no longer blocks validation or rendering. The review output is the full manuscript in timeline order with proposed highlights marked in Markdown bold.
 
 ## Layered glossaries
 
-The base glossary loads automatically. Add the bundled AI pack with `--domain ai`, keep reusable personal terms in `~/.config/subtitle-focus/glossary.json`, and pass a project glossary for the current production. Personal and project glossaries are not requested during installation.
+The base glossary loads automatically and contains 350 general suggestions: 307 Chinese confusion forms and 43 high-frequency Latin/product variants. AI products and development terms live only in the optional `--domain ai` pack. Keep reusable personal terms in `~/.config/subtitle-focus/glossary.json`, and pass a project glossary for the current production. Personal and project glossaries are not requested during installation.
+
+The base pack references the Apache-2.0 [pycorrector](https://github.com/shibing624/pycorrector) and [macro-correct](https://github.com/yongzhuo/macro-correct) projects without importing either dictionary wholesale. See the [source and exclusion policy](./skill/references/glossary-sources.md).
 
 ```text
 project > legacy custom > personal > domain > base
@@ -173,6 +175,11 @@ python3 "$SCRIPT" preview \
   --style "$WORK/style-v1.json" \
   --cue 2 \
   --output "$WORK/cue-2.png"
+
+python3 "$SCRIPT" validate \
+  --plan "$WORK/caption-plan.highlighted.json" \
+  --video /abs/input.mp4 \
+  --style "$WORK/style-v1.json"
 ```
 
 The style stores the reference image path, SHA-256, dimensions, base-style SHA, and explicit overrides.
@@ -240,18 +247,18 @@ python3 -m py_compile skill/scripts/subtitle_focus.py
 python3 scripts/build_skill_package.py
 ```
 
-The fifteen-test suite includes highlight cadence, all-sentence highlighting under the cap, short-sentence and per-sentence 30% rejection, explicit glossary choices, report path redaction, multiline/repeated-space preservation, layered-glossary precedence, plain-MD rejection, a real FFmpeg end-to-end render, stale-SRT rejection, reference-demo style provenance, corrected-cue frame coverage, final-video SHA binding, and handoff generation. The package builder includes tracked Skill files only and rejects conventional personal/project glossary filenames.
+The seventeen-test suite covers highlight cadence, full short-sentence highlighting, informational-only coverage, real-pixel auto-fit on vertical video, the 350-entry public glossary boundary, AI-term isolation, explicit glossary choices, SRT preservation, plain-MD rejection, a real FFmpeg end-to-end render, stale-SRT rejection, reference provenance, frame QA, final-video hashes, and handoff generation.
 
 ## Defaults and limits
 
 | Token | Default |
 | --- | --- |
 | Font | System PingFang SC Medium |
-| Body size | 4.8% of frame height |
+| Body size | Starts at 4.8% of frame height and auto-shrinks to the safe width |
 | Caption center | 82% of frame height |
 | Highlight | 1.34× body, `#FFD600`, dark outline |
 | Highlight cadence | At most one consecutive plain caption segment |
-| Highlight coverage | At most 30% per caption segment |
+| Highlight coverage | Review metadata only; a short caption may be 100% highlighted |
 | Bubble | `#505050`, 69% opacity, 28% padding, 40% corner |
 
 - Source SRT and video are never replaced.

@@ -33,9 +33,10 @@ Rules:
 - Multiple items may share one `cue_id` when two phrases both deserve emphasis (`卡顿感` and `不衔接感`).
 - Highlight the headword, not the qualifier: `Prompt` not `第二段 Prompt`, unless the qualifier is the point.
 - The policy is evaluated on rendered caption segments, not raw SRT blocks. Every pair of adjacent segments must include at least one segment with a highlight; two consecutive plain segments fail validation.
-- Within one segment, all highlighted ranges combined must cover at most 30% of its non-whitespace visible characters. This is a per-segment ceiling, not a whole-video average.
-- A short segment may remain plain. Prefer highlighting a meaning-bearing phrase in its adjacent longer segment instead of highlighting the short segment in full.
-- `apply` always writes the candidate plan so `review` can show the complete manuscript with proposed highlights rendered as Markdown bold. It must not output a separate keyword list or keyword-first table. Policy violations appear after the manuscript. `validate`, `preview`, `render`, `frames`, and `deliver` reject a plan that violates cadence or the 30% ceiling.
+- Highlights must be complete words, product names, or meaning-bearing phrases. Never cut `鲸鱼` down to `鲸` merely to reduce coverage.
+- A short semantically atomic segment may be highlighted in full. Coverage is still recorded per segment and for the whole plan, but it is informational and never fails validation.
+- Do not highlight filler, transitions, or low-information words solely to satisfy cadence. If no meaningful phrase exists, leave the cadence conflict visible for user review.
+- `apply` always writes the candidate plan so `review` can show the complete manuscript with proposed highlights rendered as Markdown bold. It must not output a separate keyword list or keyword-first table. Policy violations appear after the manuscript. `validate`, `preview`, `render`, `frames`, and `deliver` reject a plan that violates cadence. Real fit is checked separately from semantic coverage using actual video pixels and the selected style.
 
 ## caption_plan.json
 
@@ -76,8 +77,8 @@ Applied plans also record this deterministic policy:
 ```json
 {
   "highlight_policy": {
-    "version": 1,
-    "max_highlight_coverage": 0.3,
+    "version": 2,
+    "coverage_mode": "informational",
     "max_consecutive_plain_segments": 1
   }
 }

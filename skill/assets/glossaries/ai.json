@@ -91,6 +91,384 @@
       "suggest": "Vibe Coding",
       "reason": "场景常用写法",
       "category": "term"
+    },
+    {
+      "text": "CodeX",
+      "suggest": "Codex",
+      "reason": "产品标准写法",
+      "category": "product"
+    },
+    {
+      "text": "codex",
+      "suggest": "Codex",
+      "reason": "产品标准写法",
+      "category": "product"
+    },
+    {
+      "text": "agent",
+      "suggest": "Agent",
+      "reason": "场景常用写法",
+      "category": "term"
+    },
+    {
+      "text": "token",
+      "suggest": "Token",
+      "reason": "场景常用写法",
+      "category": "term"
+    },
+    {
+      "text": "大预言模型",
+      "suggest": "大语言模型",
+      "reason": "常见同音识别错误",
+      "category": "asr-variant"
+    },
+    {
+      "text": "多模太",
+      "suggest": "多模态",
+      "reason": "常见同音识别错误",
+      "category": "asr-variant"
+    },
+    {
+      "text": "多模泰",
+      "suggest": "多模态",
+      "reason": "常见同音识别错误",
+      "category": "asr-variant"
+    },
+    {
+      "text": "端测小模型",
+      "suggest": "端侧小模型",
+      "reason": "常见同音识别错误；整词收录以避开「端到端测试」误命中",
+      "category": "asr-variant"
+    },
+    {
+      "text": "检索增强升成",
+      "suggest": "检索增强生成",
+      "reason": "常见同音识别错误",
+      "category": "asr-variant"
+    },
+    {
+      "text": "环境变亮",
+      "suggest": "环境变量",
+      "reason": "常见同音识别错误",
+      "category": "asr-variant"
+    },
+    {
+      "text": "llm",
+      "suggest": "LLM",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "Llm",
+      "suggest": "LLM",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "rag",
+      "suggest": "RAG",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "Rag",
+      "suggest": "RAG",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "sdk",
+      "suggest": "SDK",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "cli",
+      "suggest": "CLI",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "Cli",
+      "suggest": "CLI",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "ide",
+      "suggest": "IDE",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "gpu",
+      "suggest": "GPU",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "cpu",
+      "suggest": "CPU",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "npu",
+      "suggest": "NPU",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "ssh",
+      "suggest": "SSH",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "json",
+      "suggest": "JSON",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "Json",
+      "suggest": "JSON",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "yaml",
+      "suggest": "YAML",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "csv",
+      "suggest": "CSV",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "ui",
+      "suggest": "UI",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "ux",
+      "suggest": "UX",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "http",
+      "suggest": "HTTP",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "https",
+      "suggest": "HTTPS",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "copilot",
+      "suggest": "Copilot",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "Github Copilot",
+      "suggest": "GitHub Copilot",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "github copilot",
+      "suggest": "GitHub Copilot",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "cursor",
+      "suggest": "Cursor",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "claude",
+      "suggest": "Claude",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "Claude ai",
+      "suggest": "Claude",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "gemini",
+      "suggest": "Gemini",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "huggingface",
+      "suggest": "Hugging Face",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "hugging face",
+      "suggest": "Hugging Face",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "transformer",
+      "suggest": "Transformer",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "llama",
+      "suggest": "Llama",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "qwen",
+      "suggest": "Qwen",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "anthropic",
+      "suggest": "Anthropic",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "langchain",
+      "suggest": "LangChain",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "Langchain",
+      "suggest": "LangChain",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "ollama",
+      "suggest": "Ollama",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "docker",
+      "suggest": "Docker",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "python",
+      "suggest": "Python",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "Github Actions",
+      "suggest": "GitHub Actions",
+      "reason": "产品/术语标准写法",
+      "category": "product"
+    },
+    {
+      "text": "ai",
+      "suggest": "AI",
+      "reason": "AI 场景缩写",
+      "category": "capitalization"
+    },
+    {
+      "text": "Ai",
+      "suggest": "AI",
+      "reason": "AI 场景缩写",
+      "category": "capitalization"
+    },
+    {
+      "text": "api",
+      "suggest": "API",
+      "reason": "AI 开发场景缩写",
+      "category": "capitalization"
+    },
+    {
+      "text": "Api",
+      "suggest": "API",
+      "reason": "AI 开发场景缩写",
+      "category": "capitalization"
+    },
+    {
+      "text": "mcp",
+      "suggest": "MCP",
+      "reason": "AI 工具场景缩写",
+      "category": "capitalization"
+    },
+    {
+      "text": "Mcp",
+      "suggest": "MCP",
+      "reason": "AI 工具场景缩写",
+      "category": "capitalization"
+    },
+    {
+      "text": "CHATGPT",
+      "suggest": "ChatGPT",
+      "reason": "产品标准写法",
+      "category": "product"
+    },
+    {
+      "text": "gpt",
+      "suggest": "GPT",
+      "reason": "AI 场景缩写",
+      "category": "capitalization"
+    },
+    {
+      "text": "Gpt",
+      "suggest": "GPT",
+      "reason": "AI 场景缩写",
+      "category": "capitalization"
+    },
+    {
+      "text": "deepseek",
+      "suggest": "DeepSeek",
+      "reason": "产品标准写法",
+      "category": "product"
+    },
+    {
+      "text": "Deepseek",
+      "suggest": "DeepSeek",
+      "reason": "产品标准写法",
+      "category": "product"
+    },
+    {
+      "text": "Deep Seek",
+      "suggest": "DeepSeek",
+      "reason": "产品标准写法",
+      "category": "product"
+    },
+    {
+      "text": "midjourney",
+      "suggest": "Midjourney",
+      "reason": "产品标准写法",
+      "category": "product"
+    },
+    {
+      "text": "Mid journey",
+      "suggest": "Midjourney",
+      "reason": "产品标准写法",
+      "category": "product"
     }
   ]
 }

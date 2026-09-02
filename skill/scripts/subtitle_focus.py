@@ -38,7 +38,6 @@ SKILL_ROOT = Path(__file__).resolve().parents[1]
 BUILTIN_GLOSSARY_DIR = SKILL_ROOT / "assets" / "glossaries"
 DEFAULT_PERSONAL_GLOSSARY = Path("~/.config/subtitle-focus/glossary.json").expanduser()
 BUILTIN_GLOSSARIES = {"base", "ai"}
-MAX_HIGHLIGHT_COVERAGE = 0.30
 MAX_CONSECUTIVE_PLAIN_SEGMENTS = 1
 
 
@@ -700,20 +699,15 @@ def highlight_policy_report(plan: dict[str, Any]) -> dict[str, Any]:
             current_plain_run.append(str(segment.get("id", "")))
     if current_plain_run:
         plain_runs.append(current_plain_run)
-    over_coverage = [
-        item for item in segment_reports if item["coverage"] > MAX_HIGHLIGHT_COVERAGE + 1e-9
-    ]
     longest_plain_run = max((len(run) for run in plain_runs), default=0)
     invalid_plain_runs = [
         run for run in plain_runs if len(run) > MAX_CONSECUTIVE_PLAIN_SEGMENTS
     ]
     return {
-        "valid": not over_coverage and not invalid_plain_runs,
-        "max_highlight_coverage": MAX_HIGHLIGHT_COVERAGE,
+        "valid": not invalid_plain_runs,
         "max_consecutive_plain_segments": MAX_CONSECUTIVE_PLAIN_SEGMENTS,
         "longest_plain_run": longest_plain_run,
         "segment_reports": segment_reports,
-        "over_coverage": over_coverage,
         "invalid_plain_runs": invalid_plain_runs,
     }
 
@@ -721,15 +715,10 @@ def highlight_policy_report(plan: dict[str, Any]) -> dict[str, Any]:
 def validate_highlight_policy(plan: dict[str, Any]) -> tuple[list[str], dict[str, Any]]:
     report = highlight_policy_report(plan)
     errors = [
-        f'highlight coverage exceeds 30% in segment {item["segment_id"]} '
-        f'({item["coverage"]:.1%})'
-        for item in report["over_coverage"]
-    ]
-    errors.extend(
         "highlight cadence requires at least one highlighted segment in every adjacent pair; "
         f'plain run: {", ".join(run)}'
         for run in report["invalid_plain_runs"]
-    )
+    ]
     return errors, report
 
 
@@ -793,8 +782,8 @@ def command_apply(args: argparse.Namespace) -> None:
     plan["highlight_source"] = str(Path(args.highlights).expanduser().resolve())
     policy = highlight_policy_report(plan)
     plan["highlight_policy"] = {
-        "version": 1,
-        "max_highlight_coverage": MAX_HIGHLIGHT_COVERAGE,
+        "version": 2,
+        "coverage_mode": "informational",
         "max_consecutive_plain_segments": MAX_CONSECUTIVE_PLAIN_SEGMENTS,
     }
     plan["statistics"] = {
@@ -869,6 +858,25 @@ def command_validate(args: argparse.Namespace) -> None:
                 f'SRT ends at {source["last_end_ms"]}ms but video ends at '
                 f'{round(video_result["duration"] * 1000)}ms'
             )
+    layout_result = None
+    style_value = getattr(args, "style", None)
+    if style_value:
+        if not video_result:
+            raise FocusError("--style requires --video for real pixel layout validation")
+        style_path = Path(style_value).expanduser().resolve()
+        style = load_json(style_path)
+        validate_style(style)
+        for segment in segments:
+            canvas = render_segment_canvas(
+                segment, style, int(video_result["width"]), int(video_result["height"])
+            )
+            canvas.close()
+        layout_result = {
+            "style_sha256": sha256_file(style_path),
+            "segments_checked": len(segments),
+            "width": int(video_result["width"]),
+            "height": int(video_result["height"]),
+        }
     highlighted_chars = sum(
         visible_char_count(segment["text"][h["start"] : h["end"]])
         for segment in segments
@@ -893,6 +901,8 @@ def command_validate(args: argparse.Namespace) -> None:
             "height": video_result["height"],
             "duration": video_result["duration"],
         }
+    if layout_result:
+        result["layout"] = layout_result
     print(json.dumps(result, ensure_ascii=False))
 
 
@@ -1031,66 +1041,108 @@ def highlight_runs(text: str, highlights: list[dict[str, Any]]) -> list[tuple[st
 def render_segment_canvas(
     segment: dict[str, Any], style: dict[str, Any], width: int, height: int
 ) -> Image.Image:
+    font_size_min = int(style.get("font_size_min", 34))
     font_size = int(round(height * float(style.get("font_size_ratio", 0.048))))
-    font_size = max(int(style.get("font_size_min", 34)), font_size)
+    font_size = max(font_size_min, font_size)
     font_size = min(int(style.get("font_size_max", 112)), font_size)
     highlight_scale = float(style.get("highlight_scale", 1.0))
-    highlight_size = max(1, int(round(font_size * highlight_scale)))
-    normal_font = load_style_font(style, font_size)
-    highlight_font = load_style_font(style, highlight_size) if highlight_scale != 1.0 else normal_font
-    stroke = max(1, int(round(highlight_size * float(style.get("highlight_stroke_width_ratio", 0.065)))))
-    pad_ref = highlight_size if highlight_scale > 1.0 else font_size
-    pad_x = int(round(pad_ref * float(style.get("padding_x_ratio", 0.45))))
-    pad_y = int(round(pad_ref * float(style.get("padding_y_ratio", 0.28))))
+    safe_width = int(width * float(style.get("safe_width_ratio", 0.9)))
     scratch = Image.new("RGBA", (8, 8), (0, 0, 0, 0))
     draw = ImageDraw.Draw(scratch)
-    ref_box = draw.textbbox((0, 0), "国", font=normal_font, anchor="ls")
-    pieces: list[dict[str, Any]] = []
-    for run_text, highlighted in highlight_runs(segment["text"], segment.get("highlights", [])):
-        font = highlight_font if highlighted else normal_font
-        piece_stroke = stroke if highlighted else 0
-        sample = run_text if run_text.strip() else "国"
-        box = draw.textbbox((0, 0), sample, font=font, stroke_width=piece_stroke, anchor="ls")
-        pieces.append(
-            {
-                "text": run_text,
-                "highlighted": highlighted,
-                "font": font,
-                "stroke": piece_stroke,
-                "width": float(draw.textlength(run_text, font=font)) if run_text else 0.0,
-                "top": int(box[1]),
-                "bottom": int(box[3]),
-            }
+
+    def measure(candidate_size: int) -> dict[str, Any]:
+        highlight_size = max(1, int(round(candidate_size * highlight_scale)))
+        normal_font = load_style_font(style, candidate_size)
+        highlight_font = (
+            load_style_font(style, highlight_size)
+            if highlight_scale != 1.0
+            else normal_font
         )
-    if not pieces:
-        pieces.append(
-            {
-                "text": "",
-                "highlighted": False,
-                "font": normal_font,
-                "stroke": 0,
-                "width": 0.0,
-                "top": int(ref_box[1]),
-                "bottom": int(ref_box[3]),
-            }
+        stroke = max(
+            1,
+            int(
+                round(
+                    highlight_size
+                    * float(style.get("highlight_stroke_width_ratio", 0.065))
+                )
+            ),
         )
-    max_stroke = max((item["stroke"] for item in pieces), default=0)
-    content_top = min(item["top"] for item in pieces)
-    content_bottom = max(item["bottom"] for item in pieces)
-    text_height = content_bottom - content_top
-    text_width = sum(item["width"] for item in pieces)
-    card_width = int(math.ceil(text_width)) + pad_x * 2 + max_stroke * 2
-    card_height = int(math.ceil(text_height)) + pad_y * 2 + max_stroke * 2
+        pad_ref = highlight_size if highlight_scale > 1.0 else candidate_size
+        pad_x = int(round(pad_ref * float(style.get("padding_x_ratio", 0.45))))
+        pad_y = int(round(pad_ref * float(style.get("padding_y_ratio", 0.28))))
+        ref_box = draw.textbbox((0, 0), "国", font=normal_font, anchor="ls")
+        pieces: list[dict[str, Any]] = []
+        for run_text, highlighted in highlight_runs(
+            segment["text"], segment.get("highlights", [])
+        ):
+            font = highlight_font if highlighted else normal_font
+            piece_stroke = stroke if highlighted else 0
+            sample = run_text if run_text.strip() else "国"
+            box = draw.textbbox(
+                (0, 0), sample, font=font, stroke_width=piece_stroke, anchor="ls"
+            )
+            pieces.append(
+                {
+                    "text": run_text,
+                    "highlighted": highlighted,
+                    "font": font,
+                    "stroke": piece_stroke,
+                    "width": float(draw.textlength(run_text, font=font)) if run_text else 0.0,
+                    "top": int(box[1]),
+                    "bottom": int(box[3]),
+                }
+            )
+        if not pieces:
+            pieces.append(
+                {
+                    "text": "",
+                    "highlighted": False,
+                    "font": normal_font,
+                    "stroke": 0,
+                    "width": 0.0,
+                    "top": int(ref_box[1]),
+                    "bottom": int(ref_box[3]),
+                }
+            )
+        max_stroke = max((item["stroke"] for item in pieces), default=0)
+        content_top = min(item["top"] for item in pieces)
+        content_bottom = max(item["bottom"] for item in pieces)
+        text_height = content_bottom - content_top
+        text_width = sum(item["width"] for item in pieces)
+        return {
+            "font_size": candidate_size,
+            "pieces": pieces,
+            "pad_x": pad_x,
+            "pad_y": pad_y,
+            "max_stroke": max_stroke,
+            "content_top": content_top,
+            "content_bottom": content_bottom,
+            "card_width": int(math.ceil(text_width)) + pad_x * 2 + max_stroke * 2,
+            "card_height": int(math.ceil(text_height)) + pad_y * 2 + max_stroke * 2,
+        }
+
+    metrics = measure(font_size)
+    while metrics["card_width"] > safe_width and font_size > font_size_min:
+        font_size -= 1
+        metrics = measure(font_size)
+    if metrics["card_width"] > safe_width:
+        raise FocusError(
+            f'Segment {segment["id"]} is too wide at minimum font size '
+            f'({metrics["card_width"]}px > {safe_width}px)'
+        )
+    pieces = metrics["pieces"]
+    pad_x = int(metrics["pad_x"])
+    pad_y = int(metrics["pad_y"])
+    max_stroke = int(metrics["max_stroke"])
+    content_top = int(metrics["content_top"])
+    content_bottom = int(metrics["content_bottom"])
+    card_width = int(metrics["card_width"])
+    card_height = int(metrics["card_height"])
     if "bubble_corner_percent" in style:
         radius = int(round(card_height * float(style["bubble_corner_percent"]) / 200.0))
     else:
         radius = int(round(font_size * float(style.get("corner_radius_ratio", 0.34))))
     radius = max(0, min(radius, card_height // 2, card_width // 2))
-    safe_width = int(width * float(style.get("safe_width_ratio", 0.9)))
-    if card_width > safe_width:
-        raise FocusError(
-            f'Segment {segment["id"]} is too wide ({card_width}px > {safe_width}px); reduce max-chars or font size'
-        )
     center_x = width * float(style.get("center_x_ratio", 0.5))
     center_y = height * float(style.get("center_y_ratio", 0.82))
     left = int(round(center_x - card_width / 2))
@@ -1175,10 +1227,6 @@ def command_review(args: argparse.Namespace) -> None:
         lines.append("")
     if policy_errors:
         lines.extend(["## 需要调整", ""])
-        for item in policy["over_coverage"]:
-            lines.append(
-                f'- 字幕段 {item["segment_id"]}：重点占比 {item["coverage"]:.1%}，超过 30%'
-            )
         for run in policy["invalid_plain_runs"]:
             lines.append(
                 f'- 字幕段 {" → ".join(run)}：连续 {len(run)} 句没有重点'
@@ -1793,6 +1841,7 @@ def build_parser() -> argparse.ArgumentParser:
     validate.add_argument("--plan", required=True)
     validate.add_argument("--srt")
     validate.add_argument("--video")
+    validate.add_argument("--style", help="validate every caption against real video pixels")
     validate.add_argument("--tolerance-ms", type=int, default=100)
     validate.set_defaults(func=command_validate)
     review = sub.add_parser("review", help="print a markdown table of highlight decisions")

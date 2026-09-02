@@ -1,42 +1,2120 @@
 {
   "version": 1,
-  "name": "基础词库",
+  "name": "通用基础词库",
+  "sources": [
+    {
+      "name": "pycorrector",
+      "url": "https://github.com/shibing624/pycorrector",
+      "license": "Apache-2.0",
+      "usage": "混淆集结构与 ASR 纠错设计参考"
+    },
+    {
+      "name": "macro-correct",
+      "url": "https://github.com/yongzhuo/macro-correct",
+      "license": "Apache-2.0",
+      "usage": "候选对照来源；未整库复制，已逐条筛选"
+    }
+  ],
   "forbidden_terms": [
-    {
-      "text": "ai",
-      "suggest": "AI",
-      "reason": "常用技术缩写大写",
-      "category": "capitalization"
-    },
-    {
-      "text": "Ai",
-      "suggest": "AI",
-      "reason": "常用技术缩写大写",
-      "category": "capitalization"
-    },
-    {
-      "text": "api",
-      "suggest": "API",
-      "reason": "常用技术缩写大写",
-      "category": "capitalization"
-    },
-    {
-      "text": "mcp",
-      "suggest": "MCP",
-      "reason": "常用技术缩写大写",
-      "category": "capitalization"
-    },
     {
       "text": "3d",
       "suggest": "3D",
-      "reason": "常用技术写法",
-      "category": "capitalization"
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
     },
     {
       "text": "3 d",
       "suggest": "3D",
-      "reason": "常见语音识别空格",
-      "category": "asr-variant"
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "iphone",
+      "suggest": "iPhone",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "Iphone",
+      "suggest": "iPhone",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "IPhone",
+      "suggest": "iPhone",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "android",
+      "suggest": "Android",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "wifi",
+      "suggest": "Wi-Fi",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "WiFi",
+      "suggest": "Wi-Fi",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "Wifi",
+      "suggest": "Wi-Fi",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "wi-fi",
+      "suggest": "Wi-Fi",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "WIFI",
+      "suggest": "Wi-Fi",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "type-c",
+      "suggest": "USB-C",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "typec",
+      "suggest": "USB-C",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "Type C",
+      "suggest": "USB-C",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "app store",
+      "suggest": "App Store",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "App store",
+      "suggest": "App Store",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "appstore",
+      "suggest": "App Store",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "youtube",
+      "suggest": "YouTube",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "Youtube",
+      "suggest": "YouTube",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "you tube",
+      "suggest": "YouTube",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "tiktok",
+      "suggest": "TikTok",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "Tiktok",
+      "suggest": "TikTok",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "Tik Tok",
+      "suggest": "TikTok",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "instagram",
+      "suggest": "Instagram",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "facebook",
+      "suggest": "Facebook",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "wechat",
+      "suggest": "WeChat",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "Wechat",
+      "suggest": "WeChat",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "airdrop",
+      "suggest": "AirDrop",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "Airdrop",
+      "suggest": "AirDrop",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "v log",
+      "suggest": "vlog",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "bgm",
+      "suggest": "BGM",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "Bgm",
+      "suggest": "BGM",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "hdr",
+      "suggest": "HDR",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "4k",
+      "suggest": "4K",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "4 k",
+      "suggest": "4K",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "8k",
+      "suggest": "8K",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "8 k",
+      "suggest": "8K",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "gps",
+      "suggest": "GPS",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "qr",
+      "suggest": "QR",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "pdf",
+      "suggest": "PDF",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "Pdf",
+      "suggest": "PDF",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "url",
+      "suggest": "URL",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "nfc",
+      "suggest": "NFC",
+      "reason": "通用英文或产品标准写法",
+      "category": "public-standard"
+    },
+    {
+      "text": "按耐不住",
+      "suggest": "按捺不住",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "迫不急待",
+      "suggest": "迫不及待",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "一如继往",
+      "suggest": "一如既往",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "甘败下风",
+      "suggest": "甘拜下风",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "穿流不息",
+      "suggest": "川流不息",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "暴珍天物",
+      "suggest": "暴殄天物",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "名信片",
+      "suggest": "明信片",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "重新在来",
+      "suggest": "重新再来",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "不径而走",
+      "suggest": "不胫而走",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "张灯节彩",
+      "suggest": "张灯结彩",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "再接再励",
+      "suggest": "再接再厉",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "默守成规",
+      "suggest": "墨守成规",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "依些",
+      "suggest": "一些",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "情怳",
+      "suggest": "情况",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "搜已",
+      "suggest": "所以",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "这哩",
+      "suggest": "这里",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "怎嚜",
+      "suggest": "怎么",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "学姣",
+      "suggest": "学校",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "仼务",
+      "suggest": "任务",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "愿赖",
+      "suggest": "原来",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "兔然",
+      "suggest": "突然",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "希冠",
+      "suggest": "希望",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "眼靓",
+      "suggest": "眼睛",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "联糸",
+      "suggest": "联系",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "为什幺",
+      "suggest": "为什么",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "哪理",
+      "suggest": "哪里",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "哪哩",
+      "suggest": "哪里",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "毎天",
+      "suggest": "每天",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "桃论",
+      "suggest": "讨论",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "担仼",
+      "suggest": "担任",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "音龠",
+      "suggest": "音乐",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "厌力",
+      "suggest": "压力",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "靣对",
+      "suggest": "面对",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "庄况",
+      "suggest": "状况",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "一糸列",
+      "suggest": "一系列",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "寄怪",
+      "suggest": "奇怪",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "岀发",
+      "suggest": "出发",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "休葸",
+      "suggest": "休息",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "徵笑",
+      "suggest": "微笑",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "陌光",
+      "suggest": "阳光",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "悾怕",
+      "suggest": "恐怕",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "打篹",
+      "suggest": "打算",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "走岀",
+      "suggest": "走出",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "怎么杨",
+      "suggest": "怎么样",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "便谊",
+      "suggest": "便宜",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "信仼",
+      "suggest": "信任",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "骠了",
+      "suggest": "漂亮",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "票凉",
+      "suggest": "漂亮",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "漂凉",
+      "suggest": "漂亮",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "夭空",
+      "suggest": "天空",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "税觉",
+      "suggest": "睡觉",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "付岀",
+      "suggest": "付出",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "新家波",
+      "suggest": "新加坡",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "新家坡",
+      "suggest": "新加坡",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "澎涨",
+      "suggest": "膨胀",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "剥歇",
+      "suggest": "剥削",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "提昌",
+      "suggest": "提倡",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "严悛",
+      "suggest": "严峻",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "咳嗦",
+      "suggest": "咳嗽",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "祟拜",
+      "suggest": "崇拜",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "徙弟",
+      "suggest": "徒弟",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "步阀",
+      "suggest": "步伐",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "火者站",
+      "suggest": "火车站",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "陪偿",
+      "suggest": "赔偿",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "种要性",
+      "suggest": "重要性",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "村庒",
+      "suggest": "村庄",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "湖涂",
+      "suggest": "糊涂",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "大搂",
+      "suggest": "大楼",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "焟烛",
+      "suggest": "蜡烛",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "火熖",
+      "suggest": "火焰",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "包裏",
+      "suggest": "包裹",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "剧夲",
+      "suggest": "剧本",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "寰麟",
+      "suggest": "婚礼",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "灯垄",
+      "suggest": "灯笼",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "不好亿思",
+      "suggest": "不好意思",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "名付其实",
+      "suggest": "名副其实",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "擵擦",
+      "suggest": "摩擦",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "徬晚",
+      "suggest": "傍晚",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "概慨",
+      "suggest": "感慨",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "个中各样",
+      "suggest": "各种各样",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "瞅天",
+      "suggest": "秋天",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "饭莱",
+      "suggest": "饭菜",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "往亊",
+      "suggest": "往事",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "赚嫌",
+      "suggest": "赚钱",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "沤吐",
+      "suggest": "呕吐",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "赌搏",
+      "suggest": "赌博",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "记念馆",
+      "suggest": "纪念馆",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "庒稼",
+      "suggest": "庄稼",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "按磨",
+      "suggest": "按摩",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "沏澈",
+      "suggest": "清澈",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "将学金",
+      "suggest": "奖学金",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "繁洐",
+      "suggest": "繁衍",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "扑实",
+      "suggest": "朴实",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "小心奕奕",
+      "suggest": "小心翼翼",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "通货澎胀",
+      "suggest": "通货膨胀",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "燿眼",
+      "suggest": "耀眼",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "泛烂",
+      "suggest": "泛滥",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "充佩",
+      "suggest": "充沛",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "修茸",
+      "suggest": "修葺",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "红署",
+      "suggest": "红薯",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "点视机",
+      "suggest": "电视机",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "唷意思",
+      "suggest": "有意思",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "迁徏",
+      "suggest": "迁徙",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "亷价",
+      "suggest": "廉价",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "讷闷",
+      "suggest": "纳闷",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "裸漏",
+      "suggest": "裸露",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "鬼异",
+      "suggest": "诡异",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "俱怕",
+      "suggest": "惧怕",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "搅伴",
+      "suggest": "搅拌",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "沉寝",
+      "suggest": "沉浸",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "蘶峨",
+      "suggest": "巍峨",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "枓拱",
+      "suggest": "斗拱",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "堪湛",
+      "suggest": "精湛",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "说不凊",
+      "suggest": "说不清",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "塞太阳",
+      "suggest": "晒太阳",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "背颂",
+      "suggest": "背诵",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "哆唆",
+      "suggest": "哆嗦",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "囗吻",
+      "suggest": "口吻",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "怠漫",
+      "suggest": "怠慢",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "大们口",
+      "suggest": "大门口",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "简漏",
+      "suggest": "简陋",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "酦酵",
+      "suggest": "发酵",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "强焊",
+      "suggest": "强悍",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "招慕",
+      "suggest": "招募",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "手电桶",
+      "suggest": "手电筒",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "温韾",
+      "suggest": "温馨",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "期刋",
+      "suggest": "期刊",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "手摽",
+      "suggest": "手表",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "疆绳",
+      "suggest": "缰绳",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "渲器",
+      "suggest": "喧嚣",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "晶螢",
+      "suggest": "晶莹",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "蒸茏",
+      "suggest": "蒸笼",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "巅覆",
+      "suggest": "颠覆",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "歺桌",
+      "suggest": "餐桌",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "绅仕",
+      "suggest": "绅士",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "痲痹",
+      "suggest": "麻痹",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "敝敞",
+      "suggest": "宽敞",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "陡陗",
+      "suggest": "陡峭",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "交相机",
+      "suggest": "照相机",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "晚歺",
+      "suggest": "晚餐",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "掂记",
+      "suggest": "惦记",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "缠饶",
+      "suggest": "缠绕",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "挽惜",
+      "suggest": "惋惜",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "潮讽",
+      "suggest": "嘲讽",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "暑名",
+      "suggest": "署名",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "期肦",
+      "suggest": "期盼",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "偕书",
+      "suggest": "楷书",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "惊赅",
+      "suggest": "惊骇",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "驾驿",
+      "suggest": "驾驭",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "腼怀",
+      "suggest": "缅怀",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "溃乏",
+      "suggest": "匮乏",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "深髓",
+      "suggest": "深邃",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "怆皇",
+      "suggest": "仓皇",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "釆摘",
+      "suggest": "采摘",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "絣干",
+      "suggest": "饼干",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "向日蔡",
+      "suggest": "向日葵",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "千涸",
+      "suggest": "干涸",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "像征性",
+      "suggest": "象征性",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "罂栗",
+      "suggest": "罂粟",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "泥宁",
+      "suggest": "泥泞",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "梆架",
+      "suggest": "绑架",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "跷首",
+      "suggest": "翘首",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "真缔",
+      "suggest": "真谛",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "筹马",
+      "suggest": "筹码",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "掬躬",
+      "suggest": "鞠躬",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "迭荡",
+      "suggest": "跌宕",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "烣烬",
+      "suggest": "灰烬",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "脖胫",
+      "suggest": "脖颈",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "合睦",
+      "suggest": "和睦",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "十子路口",
+      "suggest": "十字路口",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "隹节",
+      "suggest": "佳节",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "煹火",
+      "suggest": "篝火",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "爱眛",
+      "suggest": "暧昧",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "暄闹",
+      "suggest": "喧闹",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "拘紧",
+      "suggest": "拘谨",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "惊谔",
+      "suggest": "惊愕",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "稠怅",
+      "suggest": "惆怅",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "浅溥",
+      "suggest": "浅薄",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "客倌",
+      "suggest": "客官",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "架驶舱",
+      "suggest": "驾驶舱",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "呑咽",
+      "suggest": "吞咽",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "竟争者",
+      "suggest": "竞争者",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "山嵴",
+      "suggest": "山脊",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "撒骄",
+      "suggest": "撒娇",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "荟粹",
+      "suggest": "荟萃",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "执怮",
+      "suggest": "执拗",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "贫脊",
+      "suggest": "贫瘠",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "桔杆",
+      "suggest": "秸秆",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "补靪",
+      "suggest": "补丁",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "蹒姗",
+      "suggest": "蹒跚",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "狐线",
+      "suggest": "弧线",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "偏坦",
+      "suggest": "偏袒",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "冷暧",
+      "suggest": "冷暖",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "挠恕",
+      "suggest": "饶恕",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "剌激性",
+      "suggest": "刺激性",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "怎门办",
+      "suggest": "怎么办",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "附瞰",
+      "suggest": "俯瞰",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "簸萁",
+      "suggest": "簸箕",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "拾缀",
+      "suggest": "拾掇",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "原貎",
+      "suggest": "原貌",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "佼洁",
+      "suggest": "皎洁",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "风尘扑扑",
+      "suggest": "风尘仆仆",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "竹蒿",
+      "suggest": "竹篙",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "溜哒",
+      "suggest": "溜达",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "虰咬",
+      "suggest": "叮咬",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "秘藉",
+      "suggest": "秘籍",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "无可耐何",
+      "suggest": "无可奈何",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "彼比皆是",
+      "suggest": "比比皆是",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "燃然一新",
+      "suggest": "焕然一新",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "成出不穷",
+      "suggest": "层出不穷",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "胆大忘为",
+      "suggest": "胆大妄为",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "独树一枝",
+      "suggest": "独树一帜",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "耀武杨威",
+      "suggest": "耀武扬威",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "晃然大悟",
+      "suggest": "恍然大悟",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "中流抵柱",
+      "suggest": "中流砥柱",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "卧心尝胆",
+      "suggest": "卧薪尝胆",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "各施其职",
+      "suggest": "各司其职",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "此起披伏",
+      "suggest": "此起彼伏",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "兴高彩列",
+      "suggest": "兴高采烈",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "不可一势",
+      "suggest": "不可一世",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "无影无终",
+      "suggest": "无影无踪",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "乱七八槽",
+      "suggest": "乱七八糟",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "名闻暇迩",
+      "suggest": "名闻遐迩",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "星罗旗布",
+      "suggest": "星罗棋布",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "错手不及",
+      "suggest": "措手不及",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "坚定不疑",
+      "suggest": "坚定不移",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "怒不可歇",
+      "suggest": "怒不可遏",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "家寓户晓",
+      "suggest": "家喻户晓",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "气喘嘘吁",
+      "suggest": "气喘吁吁",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "无与论比",
+      "suggest": "无与伦比",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "鬼鬼崇崇",
+      "suggest": "鬼鬼祟祟",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "慎时度势",
+      "suggest": "审时度势",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "发号司令",
+      "suggest": "发号施令",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "心旷神饴",
+      "suggest": "心旷神怡",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "喜出往外",
+      "suggest": "喜出望外",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "非夷所思",
+      "suggest": "匪夷所思",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "无计于事",
+      "suggest": "无济于事",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "不言而语",
+      "suggest": "不言而喻",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "决无仅有",
+      "suggest": "绝无仅有",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "喧然大波",
+      "suggest": "轩然大波",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "手足无错",
+      "suggest": "手足无措",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "富丽堂黄",
+      "suggest": "富丽堂皇",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "措踪复杂",
+      "suggest": "错综复杂",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "伸东击西",
+      "suggest": "声东击西",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "大声急呼",
+      "suggest": "大声疾呼",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "拙咄逼人",
+      "suggest": "咄咄逼人",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "同仇敌慨",
+      "suggest": "同仇敌忾",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "斩钉接铁",
+      "suggest": "斩钉截铁",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "责无旁代",
+      "suggest": "责无旁贷",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "炉火纯清",
+      "suggest": "炉火纯青",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "提心掉胆",
+      "suggest": "提心吊胆",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "前朴后继",
+      "suggest": "前仆后继",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "知之不理",
+      "suggest": "置之不理",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "惊慌失错",
+      "suggest": "惊慌失措",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "归跟结底",
+      "suggest": "归根结底",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "一败糊地",
+      "suggest": "一败涂地",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "坚持不榭",
+      "suggest": "坚持不懈",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "大名顶顶",
+      "suggest": "大名鼎鼎",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "污烟胀气",
+      "suggest": "乌烟瘴气",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "走途无路",
+      "suggest": "走投无路",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "络译不绝",
+      "suggest": "络绎不绝",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "哑雀无声",
+      "suggest": "鸦雀无声",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "眼花暸乱",
+      "suggest": "眼花缭乱",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "汹涌彭湃",
+      "suggest": "汹涌澎湃",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "诩栩如生",
+      "suggest": "栩栩如生",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "漫不精心",
+      "suggest": "漫不经心",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "有条不稳",
+      "suggest": "有条不紊",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "天经地仪",
+      "suggest": "天经地义",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "胡做非为",
+      "suggest": "胡作非为",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "凶相必露",
+      "suggest": "凶相毕露",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "犹予不决",
+      "suggest": "犹豫不决",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "扬常而去",
+      "suggest": "扬长而去",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "忘恩负意",
+      "suggest": "忘恩负义",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "漠漠糊糊",
+      "suggest": "模模糊糊",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "别出心才",
+      "suggest": "别出心裁",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "一窃不通",
+      "suggest": "一窍不通",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "廖寥无几",
+      "suggest": "寥寥无几",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "不贻余力",
+      "suggest": "不遗余力",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "事得其反",
+      "suggest": "适得其反",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "不共带天",
+      "suggest": "不共戴天",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "一视同人",
+      "suggest": "一视同仁",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "五脏六俯",
+      "suggest": "五脏六腑",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "谎谎张张",
+      "suggest": "慌慌张张",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "魂不符体",
+      "suggest": "魂不附体",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "绪序渐进",
+      "suggest": "循序渐进",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "出类拔翠",
+      "suggest": "出类拔萃",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "不寒而立",
+      "suggest": "不寒而栗",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "一触既发",
+      "suggest": "一触即发",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "团为一谈",
+      "suggest": "混为一谈",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "首当其充",
+      "suggest": "首当其冲",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "按居乐业",
+      "suggest": "安居乐业",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "众目暌睽",
+      "suggest": "众目睽睽",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "一思不苟",
+      "suggest": "一丝不苟",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "安兵不动",
+      "suggest": "按兵不动",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "虎视耽眈",
+      "suggest": "虎视眈眈",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "以逸代劳",
+      "suggest": "以逸待劳",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "义不容词",
+      "suggest": "义不容辞",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "毅无反顾",
+      "suggest": "义无反顾",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "处心集虑",
+      "suggest": "处心积虑",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "一榻糊涂",
+      "suggest": "一塌糊涂",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "心安礼得",
+      "suggest": "心安理得",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "博大经深",
+      "suggest": "博大精深",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "专心至志",
+      "suggest": "专心致志",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "痛心嫉首",
+      "suggest": "痛心疾首",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "无所是从",
+      "suggest": "无所适从",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "推波助谰",
+      "suggest": "推波助澜",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
+    },
+    {
+      "text": "循规韬矩",
+      "suggest": "循规蹈矩",
+      "reason": "常见错字或语音识别混淆，仅作校对建议",
+      "category": "common-confusion"
     }
   ]
 }

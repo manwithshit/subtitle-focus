@@ -467,7 +467,7 @@ class SubtitleFocusTest(unittest.TestCase):
         )
         plan = focus.load_json(highlighted)
         self.assertEqual(plan["statistics"]["longest_plain_run"], 1)
-        self.assertLessEqual(plan["statistics"]["max_segment_highlight_coverage"], 0.30)
+        self.assertGreater(plan["statistics"]["max_segment_highlight_coverage"], 0)
         review = self.work / "highlight-policy-review.md"
         focus.command_review(namespace(plan=str(highlighted), output=str(review)))
         review_text = review.read_text(encoding="utf-8")
@@ -478,7 +478,7 @@ class SubtitleFocusTest(unittest.TestCase):
         self.assertNotIn("| # |", review_text)
         self.assertNotIn("未高亮：", review_text)
 
-    def test_highlight_policy_allows_every_sentence_under_the_cap(self):
+    def test_highlight_policy_allows_every_sentence(self):
         corrected, _, _, plan_path = self.build_locked_plan()
         highlighted = self.apply_highlights(
             plan_path,
@@ -513,7 +513,7 @@ class SubtitleFocusTest(unittest.TestCase):
         self.assertIn("# 完整字幕稿（需要调整）", review_text)
         self.assertIn("字幕段 2-1 → 3-1：连续 2 句没有重点", review_text)
 
-    def test_highlight_policy_rejects_more_than_thirty_percent_per_sentence(self):
+    def test_highlight_policy_allows_full_short_sentence_and_reports_coverage(self):
         corrected, _, _, plan_path = self.build_locked_plan()
         highlighted = self.apply_highlights(
             plan_path,
@@ -521,17 +521,16 @@ class SubtitleFocusTest(unittest.TestCase):
                 {"cue_id": 1, "text": "生成华纹"},
                 {"cue_id": 3, "text": "3D"},
             ],
-            "coverage-invalid.json",
+            "coverage-informational.json",
         )
-        with self.assertRaisesRegex(focus.FocusError, "coverage exceeds 30%"):
-            focus.command_validate(
-                namespace(plan=str(highlighted), srt=str(corrected), video=None, tolerance_ms=100)
-            )
-        review = self.work / "coverage-invalid-review.md"
+        focus.command_validate(
+            namespace(plan=str(highlighted), srt=str(corrected), video=None, style=None, tolerance_ms=100)
+        )
+        review = self.work / "coverage-informational-review.md"
         focus.command_review(namespace(plan=str(highlighted), output=str(review)))
         review_text = review.read_text(encoding="utf-8")
         self.assertIn("然后点击**生成华纹**", review_text)
-        self.assertIn("字幕段 1-1：重点占比 50.0%，超过 30%", review_text)
+        self.assertNotIn("需要调整", review_text)
         short_plan = {
             "segments": [
                 {
@@ -542,8 +541,34 @@ class SubtitleFocusTest(unittest.TestCase):
                 }
             ]
         }
-        short_errors, _ = focus.validate_highlight_policy(short_plan)
-        self.assertTrue(any("(100.0%)" in error for error in short_errors))
+        short_errors, report = focus.validate_highlight_policy(short_plan)
+        self.assertEqual(short_errors, [])
+        self.assertEqual(report["segment_reports"][0]["coverage"], 1.0)
+
+    def test_vertical_layout_auto_shrinks_by_real_pixel_width(self):
+        style = focus.load_json(ROOT / "skill/assets/default-style.json")
+        segment = {
+            "id": "long-1",
+            "cue_id": 1,
+            "text": "我用手机做了一个非常好用的旅行攻略小工具",
+            "highlights": [{"start": 10, "end": 14, "text": "非常好用"}],
+        }
+        image = focus.render_segment_canvas(segment, style, 1080, 1924)
+        self.assertEqual(image.size, (1080, 1924))
+
+    def test_public_base_glossary_is_general_and_bounded(self):
+        base = focus.load_json(ROOT / "skill/assets/glossaries/base.json")
+        ai = focus.load_json(ROOT / "skill/assets/glossaries/ai.json")
+        items = base["forbidden_terms"]
+        self.assertEqual(len(items), 350)
+        self.assertEqual(len({item["text"] for item in items}), 350)
+        self.assertEqual(len(base["sources"]), 2)
+        base_blob = json.dumps(items, ensure_ascii=False).lower()
+        for term in ("chatgpt", "deepseek", "midjourney", "mcp", "claude", "gemini"):
+            self.assertNotIn(term, base_blob)
+        ai_sources = {item["text"] for item in ai["forbidden_terms"]}
+        for term in ("mcp", "deepseek", "midjourney", "gpt"):
+            self.assertIn(term, ai_sources)
 
     @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"), "ffmpeg required")
     def test_end_to_end_render_frames_and_delivery(self):
@@ -615,6 +640,7 @@ class SubtitleFocusTest(unittest.TestCase):
                 plan=str(highlighted),
                 srt=str(corrected),
                 video=str(video),
+                style=str(style_path),
                 tolerance_ms=100,
             )
         )
