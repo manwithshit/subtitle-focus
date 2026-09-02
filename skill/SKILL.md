@@ -1,11 +1,11 @@
 ---
 name: subtitle-focus
-description: Use when the user has a timestamped SRT and wants to proofread it with layered glossaries, lock confirmed text, burn yellow keyword highlights or a CapCut/Jianying-like caption card, calibrate placement from a reference screenshot, review final-video frames, or register delivery. It does not transcribe video, run ASR/OCR, or accept a plain transcript as timeline input.
+description: Use when the user has a timestamped SRT and source video and primarily wants to generate yellow semantic highlights, review them in a complete manuscript, approve a short sample, and burn captions into the full video. It additionally supports project-level style calibration from an optional reference screenshot, layered glossary suggestions, confirmed text locking, final-frame inspection, and delivery registration. It does not transcribe video, run ASR/OCR, or accept a plain transcript as timeline input.
 ---
 
-# Subtitle Focus
+# Subtitle Focus｜字幕美化与重点烧录
 
-Turn a reviewed, timestamped SRT into short caption cards and a traceable final delivery. The agent decides what the words mean from SRT context, loaded glossaries, project evidence, and user corrections; the bundled script owns deterministic flags, exact replacement, source locking, mixed CJK/Latin layout, rendering, review frames, and hashes. Source SRT and video are read-only.
+Turn a reviewed, timestamped SRT into yellow semantic highlights, an approved short sample, and a traceable full-video burn-in. When the user provides a reference screenshot, additionally calibrate the caption style for that project. The agent decides what the words mean from SRT context, loaded glossaries, project evidence, and user corrections; the bundled script owns deterministic flags, exact replacement, source locking, mixed CJK/Latin layout, rendering, review frames, and hashes. Source SRT and video are read-only.
 
 Require an exported SRT. A video-only input or a plain line-by-line MD transcript has no accepted timeline in this Skill. Stop and ask the user to export SRT; do not call Video Use, 剪口播, local Whisper, ASR, or OCR.
 

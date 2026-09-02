@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="./assets/readme/hero.svg" width="100%" alt="subtitle-focus: proofread, lock, highlight, burn, review, and register SRT subtitles locally">
+  <img src="./assets/readme/hero.svg" width="100%" alt="Subtitle Focus: generate yellow semantic highlights, optionally calibrate style from a reference, and burn approved subtitles locally">
 </p>
 
 <p align="center">
@@ -13,13 +13,17 @@
   <img src="https://img.shields.io/badge/Privacy-Local_files_only-34d399.svg" alt="Local files only">
 </p>
 
-**subtitle-focus** is an Agent Skill plus a deterministic Python renderer. It reviews a timestamped SRT with layered glossaries, locks confirmed text, highlights meaning-bearing words, burns caption cards locally, extracts evidence from the final video, and registers one canonical delivery.
+**Subtitle Focus** is an Agent Skill for generating yellow semantic highlights and burning approved subtitles into the final video. Starting from a timestamped SRT and source video, it focuses on three results:
 
-It deliberately starts from an exported SRT. It does not transcribe video, call Video Use, run local ASR/OCR, or infer timestamps from a plain MD transcript.
+1. **Yellow semantic highlights** — mark complete meaning-bearing words or phrases, then show the full manuscript with proposed highlights bolded in place.
+2. **Optional style calibration** — when a reference screenshot is supplied, derive a project-specific caption position, font sizing, and safe width while keeping a consistent caption-card treatment.
+3. **Confirmed burn-in** — render a short sample first and burn the complete video only after the user approves the text, highlights, and sample.
+
+The reference image guides project-level calibration; it is not a promise of pixel-perfect reproduction. Glossaries only propose exact corrections and never edit subtitle text without confirmation. The workflow deliberately starts from an exported SRT: it does not transcribe video, call Video Use, run local ASR/OCR, or infer timestamps from a plain MD transcript. Full-video burn-in runs locally and requires Python, FFmpeg, and FFprobe.
 
 ## Real output
 
-These are cropped frames from a real 2160×3850 fish-lantern production. The screenshots are taken from the final rendered video; only the caption area is cropped.
+These are cropped frames from a real 2160×3850 fish-lantern production. They show the coordinated caption card, mixed-script layout, and semantic highlights after sample approval and full-video burn-in. The screenshots are taken from the final rendered video; only the caption area is cropped.
 
 <p align="center">
   <img src="./assets/readme/fish-lantern-cue-02.jpg" width="100%" alt="Final caption showing the corrected project term 生成华纹 in yellow">
@@ -33,7 +37,7 @@ These are cropped frames from a real 2160×3850 fish-lantern production. The scr
   <img src="./assets/readme/fish-lantern-cue-40.jpg" width="100%" alt="Final caption with 3D highlighted in yellow">
 </p>
 
-The renderer keeps Chinese and Latin on one baseline, enlarges only highlighted runs, and draws each run as a whole string so outlines do not collide.
+The renderer keeps Chinese and Latin on one baseline, enlarges only highlighted runs, and draws each run as a whole string so outlines do not collide. A supplied reference screenshot can change the project layout without changing the bundled default for later videos.
 
 ## Why the workflow locks text first
 
@@ -43,7 +47,7 @@ A one-word correction can invalidate every derived artifact. In the production a
   <img src="./assets/readme/fish-lantern-cue-35.jpg" width="100%" alt="Second corrected occurrence of 生成华纹 in the final video">
 </p>
 
-## Five gates
+## Five confirmation gates
 
 <p align="center">
   <img src="./assets/readme/workflow.svg" width="100%" alt="Five gates: proof and lock, highlights, sample, final-video frame QA, and delivery">
@@ -51,11 +55,11 @@ A one-word correction can invalidate every derived artifact. In the production a
 
 1. **Proof + lock** — review every cue, apply only confirmed exact-text corrections, then lock the SRT by hash.
 2. **Highlights** — choose complete meaning-bearing words or phrases, then send one complete manuscript with those terms bolded in place; keep every adjacent pair from going completely plain.
-3. **Sample** — keep the default vertical position at 82%, or derive a versioned override from a supplied reference screenshot.
-4. **Frame QA** — extract every corrected cue, every highlighted segment, and entry/middle/exit frames from the already-burned final video.
+3. **Style + sample** — keep the default vertical position at 82%, or derive a versioned project override from a supplied reference screenshot; then render a short sample for approval.
+4. **Burn + frame QA** — after sample approval, burn the complete video and extract every corrected cue, every highlighted segment, and entry/middle/exit frames from that final render.
 5. **Delivery** — write one manifest with video, SRT, plan, style, correction, review, and handoff hashes.
 
-The Skill stops for human approval after text corrections, highlight selection, and the short sample.
+The Skill stops for human approval after text corrections, highlight selection, and the short sample. It never proceeds from a style reference directly to a full-video render.
 
 Highlight continuity is deterministic: at most one rendered caption segment may remain plain in a row. Highlights must be complete words, product names, or meaningful phrases; the Skill must not split a word to satisfy a percentage or choose filler merely to satisfy cadence. A short sentence may be highlighted in full when the entire sentence is one semantic point. A longer sentence normally keeps one primary phrase, or two only for a genuine parallel or contrast. Coverage never blocks validation or rendering; dense highlighting in a longer segment appears as a review warning after the complete Markdown-bold manuscript.
 

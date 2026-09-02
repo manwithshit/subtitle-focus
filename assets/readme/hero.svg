@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
   <title id="title">subtitle-focus</title>
-  <desc id="desc">A local agent skill that proofreads, locks, highlights, burns, reviews, and registers SRT subtitles.</desc>
+  <desc id="desc">Generate yellow semantic highlights, optionally calibrate caption style from a reference, then burn and inspect the approved full video.</desc>
   <rect width="1200" height="360" rx="28" fill="#141416"/>
-  <text x="56" y="76" fill="#8A8A8A" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" letter-spacing="3.2">LOCAL AGENT SKILL · SRT → PROOF</text>
+  <text x="56" y="76" fill="#8A8A8A" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" letter-spacing="3.2">LOCAL AGENT SKILL · SRT + VIDEO → APPROVED BURN</text>
   <text x="56" y="148" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="56" font-weight="700">subtitle-focus</text>
-  <text x="56" y="198" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="24">Lock the words. Highlight the meaning.</text>
-  <text x="56" y="234" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="24">Burn locally. Deliver with evidence.</text>
-  <rect x="56" y="266" width="354" height="38" rx="10" fill="#2A2A2C"/>
-  <text x="233" y="291" text-anchor="middle" fill="#FFD600" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15">proofread → lock → sample → frames → deliver</text>
+  <text x="56" y="198" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="24">Highlight the meaning in yellow.</text>
+  <text x="56" y="234" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="24">Optionally match a style, then burn the full video.</text>
+  <rect x="56" y="266" width="430" height="38" rx="10" fill="#2A2A2C"/>
+  <text x="271" y="291" text-anchor="middle" fill="#FFD600" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15">proof → focus → style → sample → burn</text>
 
   <g transform="translate(690 54)">
     <rect width="454" height="72" rx="20" fill="#242428"/>
@@ -16,8 +16,8 @@
   </g>
   <g transform="translate(690 144)">
     <rect width="454" height="72" rx="20" fill="#242428"/>
-    <text x="28" y="44" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="23" font-weight="600">Reference demo</text>
-    <text x="230" y="44" fill="#FFD600" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="23" font-weight="700">configures layout</text>
+    <text x="28" y="44" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="23" font-weight="600">Reference image</text>
+    <text x="222" y="44" fill="#FFD600" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="23" font-weight="700">calibrates style</text>
   </g>
   <g transform="translate(690 234)">
     <rect width="454" height="72" rx="20" fill="#242428"/>

@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
   <title id="title">subtitle-focus</title>
-  <desc id="desc">从 SRT 校对锁定到高亮烧录、抽帧检查和交付登记的本机 Agent Skill。</desc>
+  <desc id="desc">生成黄字语义重点，可选根据参考图校准字幕样式，并在样片通过后烧录和检查完整视频。</desc>
   <rect width="1200" height="360" rx="28" fill="#141416"/>
-  <text x="56" y="76" fill="#8A8A8A" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" letter-spacing="3.2">本机 AGENT SKILL · SRT → 可验证成片</text>
+  <text x="56" y="76" fill="#8A8A8A" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" letter-spacing="3.2">本机 AGENT SKILL · SRT + 视频 → 可验证成片</text>
   <text x="56" y="148" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="56" font-weight="700">subtitle-focus</text>
-  <text x="56" y="198" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="24">先把字校对锁定，再做黄字重点。</text>
-  <text x="56" y="234" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="24">本机烧录、全量抽帧、带证据交付。</text>
-  <rect x="56" y="266" width="354" height="38" rx="10" fill="#2A2A2C"/>
-  <text x="233" y="291" text-anchor="middle" fill="#FFD600" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15">校对 → 锁定 → 样片 → 抽帧 → 交付</text>
+  <text x="56" y="198" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="24">生成黄字重点，让字幕节奏不断档。</text>
+  <text x="56" y="234" fill="#C8C8C8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="24">可选参考图调样式，确认后烧录全片。</text>
+  <rect x="56" y="266" width="430" height="38" rx="10" fill="#2A2A2C"/>
+  <text x="271" y="291" text-anchor="middle" fill="#FFD600" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15">校对 → 重点 → 样式 → 样片 → 烧录</text>
 
   <g transform="translate(690 54)">
     <rect width="454" height="72" rx="20" fill="#242428"/>
@@ -17,7 +17,7 @@
   <g transform="translate(690 144)">
     <rect width="454" height="72" rx="20" fill="#242428"/>
     <text x="28" y="44" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="23" font-weight="600">参考截图</text>
-    <text x="142" y="44" fill="#FFD600" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="23" font-weight="700">决定项目样式覆盖</text>
+    <text x="142" y="44" fill="#FFD600" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="23" font-weight="700">校准项目字幕样式</text>
   </g>
   <g transform="translate(690 234)">
     <rect width="454" height="72" rx="20" fill="#242428"/>
