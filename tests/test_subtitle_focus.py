@@ -36,7 +36,7 @@ class SubtitleFocusTest(unittest.TestCase):
 
 2
 00:00:00,800 --> 00:00:01,500
-我用Kimi K3做了一个小工具
+我用Video Kit做了一个小工具
 
 3
 00:00:01,600 --> 00:00:02,300
@@ -136,7 +136,6 @@ class SubtitleFocusTest(unittest.TestCase):
             namespace(
                 srt=str(self.source_srt),
                 glossary=str(glossary),
-                domains=[],
                 personal_glossary=None,
                 use_default_personal=False,
                 no_personal_glossary=True,
@@ -150,12 +149,12 @@ class SubtitleFocusTest(unittest.TestCase):
         self.assertIn("`生成花纹` → `生成华纹`", text)
         self.assertIn("脚本不会擅自改字", text)
 
-    def test_proofread_layers_builtin_personal_and_project_glossaries(self):
+    def test_proofread_layers_personal_and_project_glossaries(self):
         source = self.work / "layered.srt"
         source.write_text(
             """1
 00:00:00,100 --> 00:00:00,700
-我用chatgpt和clawd code写了一个AI工具，英文里还有said
+我用clawd code写了一个工具
 """,
             encoding="utf-8",
         )
@@ -201,7 +200,6 @@ class SubtitleFocusTest(unittest.TestCase):
             namespace(
                 srt=str(source),
                 glossary=None,
-                domains=["ai"],
                 personal_glossary=str(personal),
                 use_default_personal=False,
                 no_personal_glossary=False,
@@ -212,11 +210,8 @@ class SubtitleFocusTest(unittest.TestCase):
         )
         self.assertEqual(before, source.read_bytes())
         text = output.read_text(encoding="utf-8")
-        self.assertIn("`chatgpt` → `ChatGPT`", text)
-        self.assertIn("AI 场景词库", text)
         self.assertIn("`clawd code` → `Claude Code 项目版`", text)
         self.assertNotIn("`clawd code` → `Claude Code`（个人常用产品名）", text)
-        self.assertNotIn("`ai` → `AI`", text)
         self.assertIn("项目词库", text)
         self.assertNotIn(str(personal), text)
         self.assertNotIn(str(project), text)
@@ -230,7 +225,6 @@ class SubtitleFocusTest(unittest.TestCase):
                 namespace(
                     srt=str(self.source_srt),
                     glossary=None,
-                    domains=[],
                     personal_glossary=None,
                     use_default_personal=False,
                     no_personal_glossary=False,
@@ -244,7 +238,6 @@ class SubtitleFocusTest(unittest.TestCase):
                 namespace(
                     srt=str(self.source_srt),
                     glossary=None,
-                    domains=[],
                     personal_glossary=None,
                     use_default_personal=False,
                     no_personal_glossary=True,
@@ -262,7 +255,6 @@ class SubtitleFocusTest(unittest.TestCase):
                 namespace(
                     srt=str(transcript),
                     glossary=None,
-                    domains=[],
                     personal_glossary=None,
                     use_default_personal=False,
                     no_personal_glossary=True,
@@ -310,7 +302,6 @@ class SubtitleFocusTest(unittest.TestCase):
                 namespace(
                     srt=str(auto_source),
                     glossary=None,
-                    domains=[],
                     personal_glossary=None,
                     project_glossary=None,
                     use_default_personal=True,
@@ -329,7 +320,7 @@ class SubtitleFocusTest(unittest.TestCase):
             """1
 00:00:00,100 --> 00:00:01,500
 第一行  保留
-第二行Kimi K3
+第二行Video Kit
 """,
             encoding="utf-8",
         )
@@ -362,9 +353,9 @@ class SubtitleFocusTest(unittest.TestCase):
             )
         )
         output_text = corrected.read_text(encoding="utf-8")
-        self.assertIn("第一行  保留字\n第二行Kimi K3", output_text)
+        self.assertIn("第一行  保留字\n第二行Video Kit", output_text)
         review_text = review.read_text(encoding="utf-8")
-        self.assertIn("第一行  保留<br>第二行Kimi K3", review_text)
+        self.assertIn("第一行  保留<br>第二行Video Kit", review_text)
         self.assertNotIn(str(source), review_text)
         self.assertNotIn(str(corrected), review_text)
         lock = self.work / "multiline-lock.json"
@@ -374,7 +365,7 @@ class SubtitleFocusTest(unittest.TestCase):
             namespace(srt=str(corrected), lock=str(lock), output=str(plan), max_chars=50.0)
         )
         segments = focus.load_json(plan)["segments"]
-        self.assertEqual(segments[0]["text"], "第一行 保留字 第二行Kimi K3")
+        self.assertEqual(segments[0]["text"], "第一行 保留字 第二行Video Kit")
 
     def test_lock_requires_explicit_confirmation(self):
         with self.assertRaisesRegex(focus.FocusError, "without --confirmed"):
@@ -473,7 +464,7 @@ class SubtitleFocusTest(unittest.TestCase):
         review_text = review.read_text(encoding="utf-8")
         self.assertIn("# 完整字幕稿", review_text)
         self.assertIn("然后点击生成**华纹**", review_text)
-        self.assertIn("我用Kimi K3做了一个小工具", review_text)
+        self.assertIn("我用Video Kit做了一个小工具", review_text)
         self.assertIn("然后你还可以**3D** 地旋转它", review_text)
         self.assertNotIn("| # |", review_text)
         self.assertNotIn("未高亮：", review_text)
@@ -484,7 +475,7 @@ class SubtitleFocusTest(unittest.TestCase):
             plan_path,
             [
                 {"cue_id": 1, "text": "华纹"},
-                {"cue_id": 2, "text": "K3"},
+                {"cue_id": 2, "text": "Kit"},
                 {"cue_id": 3, "text": "3D"},
             ],
             "every-sentence-highlighted.json",
@@ -544,6 +535,25 @@ class SubtitleFocusTest(unittest.TestCase):
         short_errors, report = focus.validate_highlight_policy(short_plan)
         self.assertEqual(short_errors, [])
         self.assertEqual(report["segment_reports"][0]["coverage"], 1.0)
+        self.assertEqual(report["density_warnings"], [])
+
+    def test_long_dense_highlight_warns_without_blocking(self):
+        corrected, _, _, plan_path = self.build_locked_plan()
+        highlighted = self.apply_highlights(
+            plan_path,
+            [{"cue_id": 2, "text": "我用Video Kit做了一个小工具"}],
+            "dense-highlight-warning.json",
+        )
+        focus.command_validate(
+            namespace(plan=str(highlighted), srt=str(corrected), video=None, tolerance_ms=100)
+        )
+        plan = focus.load_json(highlighted)
+        self.assertEqual(plan["statistics"]["dense_highlight_warning_count"], 1)
+        review = self.work / "dense-highlight-review.md"
+        focus.command_review(namespace(plan=str(highlighted), output=str(review)))
+        review_text = review.read_text(encoding="utf-8")
+        self.assertIn("完整字幕稿（建议复核）", review_text)
+        self.assertIn("建议只保留主要语义词组（提示不阻断）", review_text)
 
     def test_vertical_layout_auto_shrinks_by_real_pixel_width(self):
         style = focus.load_json(ROOT / "skill/assets/default-style.json")
@@ -558,7 +568,6 @@ class SubtitleFocusTest(unittest.TestCase):
 
     def test_public_base_glossary_is_general_and_bounded(self):
         base = focus.load_json(ROOT / "skill/assets/glossaries/base.json")
-        ai = focus.load_json(ROOT / "skill/assets/glossaries/ai.json")
         items = base["forbidden_terms"]
         self.assertEqual(len(items), 350)
         self.assertEqual(len({item["text"] for item in items}), 350)
@@ -566,9 +575,10 @@ class SubtitleFocusTest(unittest.TestCase):
         base_blob = json.dumps(items, ensure_ascii=False).lower()
         for term in ("chatgpt", "deepseek", "midjourney", "mcp", "claude", "gemini"):
             self.assertNotIn(term, base_blob)
-        ai_sources = {item["text"] for item in ai["forbidden_terms"]}
-        for term in ("mcp", "deepseek", "midjourney", "gpt"):
-            self.assertIn(term, ai_sources)
+        self.assertEqual(
+            sorted(path.name for path in (ROOT / "skill/assets/glossaries").glob("*.json")),
+            ["base.json"],
+        )
 
     @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"), "ffmpeg required")
     def test_end_to_end_render_frames_and_delivery(self):
@@ -581,7 +591,7 @@ class SubtitleFocusTest(unittest.TestCase):
                     "global_terms": [],
                     "items": [
                         {"cue_id": 1, "text": "华纹"},
-                        {"cue_id": 2, "text": "K3"},
+                        {"cue_id": 2, "text": "Kit"},
                     ],
                 },
                 ensure_ascii=False,

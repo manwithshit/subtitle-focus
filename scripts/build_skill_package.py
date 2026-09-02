@@ -15,7 +15,6 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "dist" / "subtitle-focus.skill"
 REQUIRED_PUBLIC_GLOSSARIES = {
     "skill/assets/glossaries/base.json",
-    "skill/assets/glossaries/ai.json",
 }
 
 

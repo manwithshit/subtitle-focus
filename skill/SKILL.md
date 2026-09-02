@@ -20,8 +20,8 @@ SRT 校对锁定 → 高亮确认 → 样片确认 → 全片抽帧 → 交付�
 1. Run `doctor` before first use on a machine.
 2. Require a timestamped SRT. Reject plain MD/transcript input and video-only transcription requests.
 3. Ask for two explicit choices at project intake: use a personal glossary or explicitly skip it; use a project glossary or explicitly skip it. Do not ask during installation, and do not start formal proofreading until both choices are recorded by the `proofread` flags.
-4. Run `proofread`. The base glossary loads automatically; add `--domain ai` when relevant. Read [text-lock-schema.md](references/text-lock-schema.md) for the explicit choices, layering, privacy behavior, and schema.
-   The base/domain boundary and public-source review policy are documented in [glossary-sources.md](references/glossary-sources.md).
+4. Run `proofread`. The base glossary loads automatically. Read [text-lock-schema.md](references/text-lock-schema.md) for the explicit choices, layering, privacy behavior, and schema.
+   The public-source review policy is documented in [glossary-sources.md](references/glossary-sources.md).
 5. Inspect every cue using SRT neighbors, loaded glossary provenance, project vocabulary, product names, project files, and user corrections. Only apply spelling, capitalization, number, unit, pronoun, or spacing rules when an actual user/project rule or enumerated glossary entry exists. Do not invent a general normalization policy.
 6. Draft `corrections.json`. Glossary matches are suggestions, never automatic edits. Never rewrite silently.
 7. Run `correct`; show the cue-level before/after table to the user. The output must preserve unmentioned line breaks and repeated spaces in the SRT text.
@@ -36,7 +36,7 @@ SRT 校对锁定 → 高亮确认 → 样片确认 → 全片抽帧 → 交付�
 3. Run `apply` and `review`. Adjust the choices until the cadence report passes, then run `validate`.
 4. Send the user the complete caption manuscript in timeline order, with every proposed highlight marked directly in the sentence using Markdown bold. Do not send a separate keyword list or highlight table first. Ask the user to confirm the bold locations or name the sentences that need retargeting.
 
-Selection: meaning-bearing complete words or phrases only. Treat each rendered caption segment as one sentence. Every adjacent pair must contain at least one highlighted segment, so a run of unhighlighted sentences can be at most one. Highlighting every sentence is allowed when it improves continuity, and a short semantically atomic sentence may be highlighted in full. Do not split a word, product name, or phrase merely to reduce a percentage. Do not highlight filler, transitions, or low-information words just to satisfy cadence. Coverage is reported for review but never blocks a plan. If cadence cannot be satisfied with a meaningful highlight, report the conflicting segment ids for user review. Never rewrite the locked SRT during highlighting.
+Selection: meaning-bearing complete words or phrases only. Treat each rendered caption segment as one sentence. Every adjacent pair must contain at least one highlighted segment, so a run of unhighlighted sentences can be at most one. Highlighting every sentence is allowed when it improves continuity. A short semantically atomic sentence may be highlighted in full; a longer sentence should normally keep one primary meaning-bearing phrase, or two only for a genuine parallel or contrast. Do not split a word, product name, or phrase merely to reduce a percentage. Do not highlight filler, transitions, or low-information words just to satisfy cadence. Coverage never blocks a plan. The review adds a non-blocking density warning when a longer segment is mostly highlighted or contains too many highlight ranges, and the user decides from the complete bolded manuscript. If cadence cannot be satisfied with a meaningful highlight, report the conflicting segment ids for user review. Never rewrite the locked SRT during highlighting.
 
 **STOP.** Do not render until the user confirms the bolded complete manuscript.
 
@@ -74,7 +74,7 @@ SCRIPT=skill/scripts/subtitle_focus.py
 
 python3 "$SCRIPT" doctor
 python3 "$SCRIPT" glossary-init --scope personal
-python3 "$SCRIPT" proofread --srt /abs/in.srt --domain ai --no-personal-glossary --no-project-glossary --output /abs/text-review.md
+python3 "$SCRIPT" proofread --srt /abs/in.srt --no-personal-glossary --no-project-glossary --output /abs/text-review.md
 python3 "$SCRIPT" correct --srt /abs/in.srt --corrections /abs/corrections.json --output /abs/locked-text.srt --review /abs/corrections-review.md
 python3 "$SCRIPT" lock --srt /abs/locked-text.srt --output /abs/srt-lock.json --confirmed
 python3 "$SCRIPT" plan --srt /abs/locked-text.srt --lock /abs/srt-lock.json --output /abs/caption-plan.json
@@ -110,3 +110,4 @@ Visual numbers and typography rules are in [visual-spec.md](references/visual-sp
 | “Flattening SRT lines is harmless” | The render plan may derive one display line, but the locked SRT must preserve unmentioned whitespace. |
 | “Four plain sentences in a row are acceptable” | Every adjacent pair needs at least one highlighted segment; validation blocks longer plain runs. |
 | “A short sentence cannot be highlighted in full” | It may be fully highlighted when the whole sentence is one meaningful point; coverage remains informational. |
+| “Removing the 30% cap means a long sentence can all turn yellow” | Long dense highlighting is shown as a review warning; keep one primary phrase by default and let the user decide from the complete manuscript. |

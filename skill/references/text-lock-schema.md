@@ -2,7 +2,7 @@
 
 ## Layered glossaries
 
-`proofread` requires a timestamped SRT. It does not call ASR, OCR, Video Use, or any speech-cutting Skill. The bundled base glossary loads automatically; add `--domain ai` when relevant.
+`proofread` requires a timestamped SRT. It does not call ASR, OCR, Video Use, or any speech-cutting Skill. The bundled base glossary loads automatically.
 
 At Gate 1, make one explicit choice for each user-controlled layer:
 
@@ -27,7 +27,7 @@ The choices are required at project intake, not installation. `proofread` refuse
 Precedence is deterministic:
 
 ```text
-project > legacy custom > personal > domain > base
+project > legacy custom > personal > base
 ```
 
 The higher layer replaces a lower-layer entry only when both target the exact same `text`. Glossaries flag known wrong forms without changing the SRT. ASCII terms use token boundaries, so `ai` does not match the middle of `said`.

@@ -8,7 +8,7 @@ The bundled base glossary is a small deterministic review aid, not a language mo
 - 43 broadly used Latin/product-format variants.
 - 307 Chinese confusion forms covering everyday speech, food, travel, lifestyle, objects, and common idioms.
 - No personal names, project names, private paths, account data, or user-specific terms.
-- No AI product or AI-development terminology. Load those only with `--domain ai`.
+- No AI product or AI-development terminology. Put project-specific AI terms in the project glossary when a production needs them.
 
 The maintained allowlist lives in `scripts/generate_base_glossary.py`. Generation fails if entries are duplicated, source and suggestion are equal, or the public base leaves the agreed 300–400 range.
 
@@ -29,4 +29,4 @@ An entry is eligible only when all of these hold:
 4. The pair is useful outside a single creator niche.
 5. A human still confirms the cue-level change at Gate 1.
 
-Correct product names, project vocabulary, personal vocabulary, and contextual grammar belong in domain, project, or personal layers rather than the public base.
+Correct product names, project vocabulary, personal vocabulary, and contextual grammar belong in project or personal layers rather than the public base.

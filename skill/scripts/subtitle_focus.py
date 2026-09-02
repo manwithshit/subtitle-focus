@@ -37,8 +37,10 @@ PINGFANG_SC_MEDIUM_INDEX = 7
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 BUILTIN_GLOSSARY_DIR = SKILL_ROOT / "assets" / "glossaries"
 DEFAULT_PERSONAL_GLOSSARY = Path("~/.config/subtitle-focus/glossary.json").expanduser()
-BUILTIN_GLOSSARIES = {"base", "ai"}
 MAX_CONSECUTIVE_PLAIN_SEGMENTS = 1
+DENSE_HIGHLIGHT_MIN_VISIBLE_CHARS = 10
+DENSE_HIGHLIGHT_WARNING_COVERAGE = 0.6
+DENSE_HIGHLIGHT_WARNING_RANGES = 3
 
 
 class FocusError(RuntimeError):
@@ -356,17 +358,6 @@ def proofread_glossary_layers(
     layers.append(
         load_glossary_layer(BUILTIN_GLOSSARY_DIR / "base.json", "基础词库", priority=10)
     )
-    domains = list(dict.fromkeys(getattr(args, "domains", None) or []))
-    for domain in domains:
-        if domain not in BUILTIN_GLOSSARIES or domain == "base":
-            raise FocusError(f"Unknown glossary domain: {domain}")
-        layers.append(
-            load_glossary_layer(
-                BUILTIN_GLOSSARY_DIR / f"{domain}.json",
-                "AI 场景词库" if domain == "ai" else f"{domain} 词库",
-                priority=20,
-            )
-        )
 
     personal_value = getattr(args, "personal_glossary", None)
     use_default_personal = bool(getattr(args, "use_default_personal", False))
@@ -378,13 +369,13 @@ def proofread_glossary_layers(
         )
     if personal_value:
         personal_path = Path(personal_value).expanduser().resolve()
-        layers.append(load_glossary_layer(personal_path, "个人词库", priority=30))
+        layers.append(load_glossary_layer(personal_path, "个人词库", priority=20))
         personal_choice = "使用已提供的个人词库"
     elif use_default_personal:
         if not DEFAULT_PERSONAL_GLOSSARY.is_file():
             raise FocusError(f"Default personal glossary does not exist: {DEFAULT_PERSONAL_GLOSSARY}")
         layers.append(
-            load_glossary_layer(DEFAULT_PERSONAL_GLOSSARY.resolve(), "个人词库", priority=30)
+            load_glossary_layer(DEFAULT_PERSONAL_GLOSSARY.resolve(), "个人词库", priority=20)
         )
         personal_choice = "使用默认个人词库"
     else:
@@ -393,7 +384,7 @@ def proofread_glossary_layers(
     legacy_value = getattr(args, "glossary", None)
     if legacy_value:
         legacy_path = Path(legacy_value).expanduser().resolve()
-        layers.append(load_glossary_layer(legacy_path, "自定义词库", priority=35))
+        layers.append(load_glossary_layer(legacy_path, "自定义词库", priority=30))
 
     project_value = getattr(args, "project_glossary", None)
     no_project = bool(getattr(args, "no_project_glossary", False))
@@ -439,7 +430,7 @@ def command_proofread(args: argparse.Namespace) -> None:
         "- 输入边界：只校对带时间码的 SRT；未调用本地 ASR、OCR、Video Use 或剪口播。",
         f'- 个人词库选择：{choices["personal"]}',
         f'- 项目词库选择：{choices["project"]}',
-        "- 词库优先级：项目 > 自定义 > 个人 > 场景 > 基础。词库只给建议，不自动改字。",
+        "- 词库优先级：项目 > 自定义 > 个人 > 基础。词库只给建议，不自动改字。",
         "- 已加载词库：" + "；".join(
             f'{layer["name"]}（SHA-256：`{layer["sha256"]}`）' for layer in layers
         ),
@@ -672,6 +663,7 @@ def visible_char_count(text: str) -> int:
 def highlight_policy_report(plan: dict[str, Any]) -> dict[str, Any]:
     segments = plan.get("segments", [])
     segment_reports: list[dict[str, Any]] = []
+    density_warnings: list[dict[str, Any]] = []
     plain_runs: list[list[str]] = []
     current_plain_run: list[str] = []
     for segment in segments:
@@ -682,15 +674,20 @@ def highlight_policy_report(plan: dict[str, Any]) -> dict[str, Any]:
         )
         visible_chars = visible_char_count(text)
         coverage = highlighted_chars / max(1, visible_chars)
-        segment_reports.append(
-            {
-                "segment_id": str(segment.get("id", "")),
-                "cue_id": int(segment.get("cue_id", 0)),
-                "visible_chars": visible_chars,
-                "highlighted_chars": highlighted_chars,
-                "coverage": coverage,
-            }
-        )
+        report_item = {
+            "segment_id": str(segment.get("id", "")),
+            "cue_id": int(segment.get("cue_id", 0)),
+            "visible_chars": visible_chars,
+            "highlighted_chars": highlighted_chars,
+            "highlight_ranges": len(segment.get("highlights", [])),
+            "coverage": coverage,
+        }
+        segment_reports.append(report_item)
+        if visible_chars >= DENSE_HIGHLIGHT_MIN_VISIBLE_CHARS and (
+            coverage >= DENSE_HIGHLIGHT_WARNING_COVERAGE
+            or report_item["highlight_ranges"] >= DENSE_HIGHLIGHT_WARNING_RANGES
+        ):
+            density_warnings.append(report_item)
         if highlighted_chars:
             if current_plain_run:
                 plain_runs.append(current_plain_run)
@@ -709,6 +706,7 @@ def highlight_policy_report(plan: dict[str, Any]) -> dict[str, Any]:
         "longest_plain_run": longest_plain_run,
         "segment_reports": segment_reports,
         "invalid_plain_runs": invalid_plain_runs,
+        "density_warnings": density_warnings,
     }
 
 
@@ -782,8 +780,9 @@ def command_apply(args: argparse.Namespace) -> None:
     plan["highlight_source"] = str(Path(args.highlights).expanduser().resolve())
     policy = highlight_policy_report(plan)
     plan["highlight_policy"] = {
-        "version": 2,
+        "version": 3,
         "coverage_mode": "informational",
+        "density_mode": "warning",
         "max_consecutive_plain_segments": MAX_CONSECUTIVE_PLAIN_SEGMENTS,
     }
     plan["statistics"] = {
@@ -794,6 +793,7 @@ def command_apply(args: argparse.Namespace) -> None:
             max((item["coverage"] for item in policy["segment_reports"]), default=0), 4
         ),
         "longest_plain_run": policy["longest_plain_run"],
+        "dense_highlight_warning_count": len(policy["density_warnings"]),
     }
     write_json(Path(args.output).expanduser().resolve(), plan)
     print(json.dumps(plan["statistics"], ensure_ascii=False))
@@ -892,6 +892,7 @@ def command_validate(args: argparse.Namespace) -> None:
             max((item["coverage"] for item in policy["segment_reports"]), default=0), 4
         ),
         "longest_plain_run": policy["longest_plain_run"],
+        "dense_highlight_warning_count": len(policy["density_warnings"]),
         "source_srt_sha256": source["sha256"],
         "cue_count": source["cue_count"],
     }
@@ -1218,10 +1219,13 @@ def command_review(args: argparse.Namespace) -> None:
     verify_plan_source(plan)
     segments = plan["segments"]
     policy_errors, policy = validate_highlight_policy(plan)
-    lines = [
-        "# 完整字幕稿" if not policy_errors else "# 完整字幕稿（需要调整）",
-        "",
-    ]
+    if policy_errors:
+        title = "# 完整字幕稿（需要调整）"
+    elif policy["density_warnings"]:
+        title = "# 完整字幕稿（建议复核）"
+    else:
+        title = "# 完整字幕稿"
+    lines = [title, ""]
     for segment in segments:
         lines.append(markdown_bold_segment(segment))
         lines.append("")
@@ -1230,6 +1234,14 @@ def command_review(args: argparse.Namespace) -> None:
         for run in policy["invalid_plain_runs"]:
             lines.append(
                 f'- 字幕段 {" → ".join(run)}：连续 {len(run)} 句没有重点'
+            )
+    if policy["density_warnings"]:
+        lines.extend(["", "## 建议复核", ""])
+        for item in policy["density_warnings"]:
+            percentage = round(float(item["coverage"]) * 100)
+            lines.append(
+                f'- 字幕段 {item["segment_id"]}：长句重点覆盖约 {percentage}%，'
+                "建议只保留主要语义词组（提示不阻断）"
             )
     text = "\n".join(lines) + "\n"
     if args.output:
@@ -1800,7 +1812,6 @@ def build_parser() -> argparse.ArgumentParser:
     doctor.set_defaults(func=command_doctor)
     proofread = sub.add_parser("proofread", help="build a cue-by-cue text review table")
     proofread.add_argument("--srt", required=True)
-    proofread.add_argument("--domain", dest="domains", action="append", choices=["ai"])
     personal_choice = proofread.add_mutually_exclusive_group(required=True)
     personal_choice.add_argument("--personal-glossary")
     personal_choice.add_argument("--use-default-personal", action="store_true")

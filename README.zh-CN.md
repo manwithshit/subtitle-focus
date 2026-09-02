@@ -26,7 +26,7 @@
 </p>
 
 <p align="center">
-  <img src="./assets/readme/fish-lantern-cue-05.jpg" width="100%" alt="Kimi K3 中英混排字幕保持同一基线">
+  <img src="./assets/readme/fish-lantern-cue-05.jpg" width="100%" alt="AI 中英混排字幕保持同一基线">
 </p>
 
 <p align="center">
@@ -57,16 +57,16 @@
 
 文字修改、高亮选择和样片都必须经过用户确认，不能由 Agent 自己跳闸。
 
-高亮连续性由脚本确定性检查：最多只能连续一条渲染字幕不带重点。重点必须是完整词、产品名或有意义的短语，不能为了比例拆词，也不能用口水词、连接词凑节奏。短句本身就是一个完整重点时，可以 100% 高亮。高亮占比继续输出为审核统计，不再阻断验证或渲染。审核稿直接在完整句子中用 Markdown 粗体标记重点。
+高亮连续性由脚本确定性检查：最多只能连续一条渲染字幕不带重点。重点必须是完整词、产品名或有意义的短语，不能为了比例拆词，也不能用口水词、连接词凑节奏。短句本身就是一个完整重点时，可以 100% 高亮；长句默认只保留一个主要语义词组，真正并列或对比时才用两个。占比不阻断验证或渲染；长句重点过密时，完整粗体稿后会附上复核提示。
 
 ## 分层词库
 
-基础词库默认加载，现包含 350 条通用建议：307 条中文常见混淆和 43 条高频英文／产品写法。AI 产品与开发术语已独立到 `--domain ai`；长期使用的个人词放在 `~/.config/subtitle-focus/glossary.json`；当前视频独有词汇通过项目词库传入。
+公开仓库只内置一个有内容的词库：350 条基础词，其中包含 307 条中文常见混淆和 43 条高频英文／产品写法。长期使用的个人词放在 `~/.config/subtitle-focus/glossary.json`；当前视频独有的词汇——包括 AI 产品名——通过项目词库传入。个人词库和项目词库默认为空，由用户自己维护，安装时不会要求提供。
 
 基础词库参考 Apache-2.0 的 [pycorrector](https://github.com/shibing624/pycorrector) 和 [macro-correct](https://github.com/yongzhuo/macro-correct)，但不整库导入；只保留逐条筛选后、不依赖视频声音也能明确判断的精确映射。详见 [词库来源说明](./skill/references/glossary-sources.md)。
 
 ```text
-项目 > 旧版自定义 > 个人 > 场景 > 基础
+项目 > 旧版自定义 > 个人 > 基础
 ```
 
 词库保存“已知错误形式 → 标准写法”。它只生成带来源的纠正建议，绝不自动改写 SRT。同一个错误形式发生冲突时，项目词库覆盖低优先级词库。
@@ -116,7 +116,6 @@ WORK=/abs/work
 
 python3 "$SCRIPT" proofread \
   --srt /abs/input.srt \
-  --domain ai \
   --no-personal-glossary \
   --no-project-glossary \
   --output "$WORK/text-review.md"
@@ -246,7 +245,7 @@ python3 -m py_compile skill/scripts/subtitle_focus.py
 python3 scripts/build_skill_package.py
 ```
 
-17 项测试覆盖高亮连续性、短句 100% 高亮、占比只统计不拦截、竖屏真实像素自动缩放、350 条基础词库边界、AI 词隔离、词库显式选择、SRT 格式保留、纯 MD 拒绝、真实 FFmpeg 端到端烧录、旧 SRT 失效、参考图来源、抽帧、交付 SHA 和 handoff。
+18 项测试覆盖高亮连续性、短句 100% 高亮、长句过密提示不阻断、竖屏真实像素自动缩放、公开包只含 350 条基础词、词库显式选择、SRT 格式保留、纯 MD 拒绝、真实 FFmpeg 端到端烧录、旧 SRT 失效、参考图来源、抽帧、交付 SHA 和 handoff。
 
 ## 默认值与边界
 
@@ -257,7 +256,7 @@ python3 scripts/build_skill_package.py
 | 字幕中心 | 画面高度的 82% |
 | 高亮 | 正文 1.34 倍、`#FFD600`、深色描边 |
 | 高亮连续性 | 最多连续一条字幕无重点 |
-| 单句重点占比 | 只做审核统计，短句可 100% 高亮 |
+| 重点密度 | 不阻断；语义完整的短句可 100% 高亮，长句过密时提示复核 |
 | 底条 | `#505050`、69% 不透明度、28% 边距、40% 圆角 |
 
 - 原 SRT 和原视频永远不覆盖。

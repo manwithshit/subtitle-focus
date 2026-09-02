@@ -26,7 +26,7 @@ These are cropped frames from a real 2160×3850 fish-lantern production. The scr
 </p>
 
 <p align="center">
-  <img src="./assets/readme/fish-lantern-cue-05.jpg" width="100%" alt="Mixed Chinese and Latin caption with Kimi K3 highlighted on one baseline">
+  <img src="./assets/readme/fish-lantern-cue-05.jpg" width="100%" alt="Mixed Chinese and Latin caption with AI highlighted on one baseline">
 </p>
 
 <p align="center">
@@ -57,16 +57,16 @@ A one-word correction can invalidate every derived artifact. In the production a
 
 The Skill stops for human approval after text corrections, highlight selection, and the short sample.
 
-Highlight continuity is deterministic: at most one rendered caption segment may remain plain in a row. Highlights must be complete words, product names, or meaningful phrases; the Skill must not split a word to satisfy a percentage or choose filler merely to satisfy cadence. A short sentence may be highlighted in full when the entire sentence is one semantic point. Coverage remains visible as review metadata but no longer blocks validation or rendering. The review output is the full manuscript in timeline order with proposed highlights marked in Markdown bold.
+Highlight continuity is deterministic: at most one rendered caption segment may remain plain in a row. Highlights must be complete words, product names, or meaningful phrases; the Skill must not split a word to satisfy a percentage or choose filler merely to satisfy cadence. A short sentence may be highlighted in full when the entire sentence is one semantic point. A longer sentence normally keeps one primary phrase, or two only for a genuine parallel or contrast. Coverage never blocks validation or rendering; dense highlighting in a longer segment appears as a review warning after the complete Markdown-bold manuscript.
 
 ## Layered glossaries
 
-The base glossary loads automatically and contains 350 general suggestions: 307 Chinese confusion forms and 43 high-frequency Latin/product variants. AI products and development terms live only in the optional `--domain ai` pack. Keep reusable personal terms in `~/.config/subtitle-focus/glossary.json`, and pass a project glossary for the current production. Personal and project glossaries are not requested during installation.
+The public repository contains one populated glossary: the 350-entry base pack, with 307 Chinese confusion forms and 43 high-frequency Latin/product variants. Keep reusable personal terms in `~/.config/subtitle-focus/glossary.json`, and pass current-production terms—including any AI product vocabulary—through a project glossary. Personal and project glossaries start empty, stay user-controlled, and are not requested during installation.
 
 The base pack references the Apache-2.0 [pycorrector](https://github.com/shibing624/pycorrector) and [macro-correct](https://github.com/yongzhuo/macro-correct) projects without importing either dictionary wholesale. See the [source and exclusion policy](./skill/references/glossary-sources.md).
 
 ```text
-project > legacy custom > personal > domain > base
+project > legacy custom > personal > base
 ```
 
 Glossaries contain known-wrong forms and canonical suggestions. They never rewrite SRT text automatically. A project entry overrides lower layers only when it targets the same exact wrong form, and every review row records its source.
@@ -116,7 +116,6 @@ WORK=/abs/work
 
 python3 "$SCRIPT" proofread \
   --srt /abs/input.srt \
-  --domain ai \
   --no-personal-glossary \
   --no-project-glossary \
   --output "$WORK/text-review.md"
@@ -247,7 +246,7 @@ python3 -m py_compile skill/scripts/subtitle_focus.py
 python3 scripts/build_skill_package.py
 ```
 
-The seventeen-test suite covers highlight cadence, full short-sentence highlighting, informational-only coverage, real-pixel auto-fit on vertical video, the 350-entry public glossary boundary, AI-term isolation, explicit glossary choices, SRT preservation, plain-MD rejection, a real FFmpeg end-to-end render, stale-SRT rejection, reference provenance, frame QA, final-video hashes, and handoff generation.
+The eighteen-test suite covers highlight cadence, full short-sentence highlighting, non-blocking long-sentence density warnings, real-pixel auto-fit on vertical video, the single 350-entry public glossary boundary, explicit glossary choices, SRT preservation, plain-MD rejection, a real FFmpeg end-to-end render, stale-SRT rejection, reference provenance, frame QA, final-video hashes, and handoff generation.
 
 ## Defaults and limits
 
@@ -258,7 +257,7 @@ The seventeen-test suite covers highlight cadence, full short-sentence highlight
 | Caption center | 82% of frame height |
 | Highlight | 1.34× body, `#FFD600`, dark outline |
 | Highlight cadence | At most one consecutive plain caption segment |
-| Highlight coverage | Review metadata only; a short caption may be 100% highlighted |
+| Highlight density | Never blocks; short atomic captions may be 100% highlighted, while dense long captions receive a review warning |
 | Bubble | `#505050`, 69% opacity, 28% padding, 40% corner |
 
 - Source SRT and video are never replaced.

@@ -34,7 +34,8 @@ Rules:
 - Highlight the headword, not the qualifier: `Prompt` not `第二段 Prompt`, unless the qualifier is the point.
 - The policy is evaluated on rendered caption segments, not raw SRT blocks. Every pair of adjacent segments must include at least one segment with a highlight; two consecutive plain segments fail validation.
 - Highlights must be complete words, product names, or meaning-bearing phrases. Never cut `鲸鱼` down to `鲸` merely to reduce coverage.
-- A short semantically atomic segment may be highlighted in full. Coverage is still recorded per segment and for the whole plan, but it is informational and never fails validation.
+- A short semantically atomic segment may be highlighted in full. A longer segment should normally keep one primary meaning-bearing phrase, or two only for a genuine parallel or contrast.
+- Coverage is recorded per segment and for the whole plan. It never fails validation. A longer segment that is mostly highlighted, or has three or more highlight ranges, receives a non-blocking density warning after the complete manuscript.
 - Do not highlight filler, transitions, or low-information words solely to satisfy cadence. If no meaningful phrase exists, leave the cadence conflict visible for user review.
 - `apply` always writes the candidate plan so `review` can show the complete manuscript with proposed highlights rendered as Markdown bold. It must not output a separate keyword list or keyword-first table. Policy violations appear after the manuscript. `validate`, `preview`, `render`, `frames`, and `deliver` reject a plan that violates cadence. Real fit is checked separately from semantic coverage using actual video pixels and the selected style.
 
@@ -77,8 +78,9 @@ Applied plans also record this deterministic policy:
 ```json
 {
   "highlight_policy": {
-    "version": 2,
+    "version": 3,
     "coverage_mode": "informational",
+    "density_mode": "warning",
     "max_consecutive_plain_segments": 1
   }
 }
