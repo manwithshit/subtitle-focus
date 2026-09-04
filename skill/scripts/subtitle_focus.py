@@ -660,14 +660,121 @@ def visible_char_count(text: str) -> int:
     return sum(not char.isspace() for char in text)
 
 
+def is_fully_parenthetical(text: str) -> bool:
+    stripped = text.strip()
+    return any(
+        stripped.startswith(opening) and stripped.endswith(closing)
+        for opening, closing in (("（", "）"), ("(", ")"))
+    )
+
+
+def fully_parenthetical_cue_ids(segments: list[dict[str, Any]]) -> set[int]:
+    cue_parts: dict[int, list[str]] = {}
+    for segment in segments:
+        cue_id = int(segment.get("cue_id", 0))
+        cue_parts.setdefault(cue_id, []).append(str(segment.get("text", "")))
+    return {
+        cue_id
+        for cue_id, parts in cue_parts.items()
+        if is_fully_parenthetical("".join(parts))
+    }
+
+
+def normalize_plain_overrides(
+    raw_overrides: Any, segments: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    if raw_overrides is None:
+        return []
+    if not isinstance(raw_overrides, list):
+        raise FocusError("plain_overrides must be an array")
+    cue_ids = {int(segment.get("cue_id", 0)) for segment in segments}
+    segment_ids = {str(segment.get("id", "")) for segment in segments}
+    normalized: list[dict[str, Any]] = []
+    seen: set[tuple[str, int | str]] = set()
+    for item_no, item in enumerate(raw_overrides, start=1):
+        if not isinstance(item, dict):
+            raise FocusError(f"Plain override {item_no} must be an object")
+        target_fields = [field for field in ("cue_id", "segment_id") if field in item]
+        if len(target_fields) != 1:
+            raise FocusError(
+                f"Plain override {item_no} needs exactly one of cue_id or segment_id"
+            )
+        reason = str(item.get("reason", "")).strip()
+        if not reason:
+            raise FocusError(
+                f"Plain override {item_no} needs a non-empty user-confirmed reason"
+            )
+        target_field = target_fields[0]
+        if target_field == "cue_id":
+            try:
+                target_value: int | str = int(item[target_field])
+            except (TypeError, ValueError) as exc:
+                raise FocusError(
+                    f"Plain override {item_no} has an invalid cue_id"
+                ) from exc
+            if target_value not in cue_ids:
+                raise FocusError(
+                    f"Plain override {item_no} targets unknown cue_id {target_value}"
+                )
+        else:
+            target_value = str(item[target_field])
+            if target_value not in segment_ids:
+                raise FocusError(
+                    f'Plain override {item_no} targets unknown segment_id "{target_value}"'
+                )
+        key = (target_field, target_value)
+        if key in seen:
+            raise FocusError(f"Plain override {item_no} duplicates {target_field} {target_value}")
+        seen.add(key)
+        normalized.append({target_field: target_value, "reason": reason})
+    return normalized
+
+
+def plain_override_segment_reasons(
+    overrides: list[dict[str, Any]], segments: list[dict[str, Any]]
+) -> dict[str, list[str]]:
+    reasons: dict[str, list[str]] = {}
+    for override in overrides:
+        if "cue_id" in override:
+            targets = [
+                segment
+                for segment in segments
+                if int(segment.get("cue_id", 0)) == int(override["cue_id"])
+            ]
+        else:
+            targets = [
+                segment
+                for segment in segments
+                if str(segment.get("id", "")) == str(override["segment_id"])
+            ]
+        for segment in targets:
+            reasons.setdefault(str(segment.get("id", "")), []).append(override["reason"])
+    return reasons
+
+
 def highlight_policy_report(plan: dict[str, Any]) -> dict[str, Any]:
     segments = plan.get("segments", [])
+    cadence_exempt_cue_ids = fully_parenthetical_cue_ids(segments)
+    plain_override_errors: list[str] = []
+    try:
+        plain_overrides = normalize_plain_overrides(plan.get("plain_overrides", []), segments)
+    except FocusError as exc:
+        plain_overrides = []
+        plain_override_errors.append(str(exc))
+    user_plain_reasons = plain_override_segment_reasons(plain_overrides, segments)
     segment_reports: list[dict[str, Any]] = []
     density_warnings: list[dict[str, Any]] = []
     plain_runs: list[list[str]] = []
+    parenthetical_highlight_violations: list[str] = []
+    user_plain_highlight_violations: list[str] = []
     current_plain_run: list[str] = []
     for segment in segments:
         text = str(segment.get("text", ""))
+        cue_id = int(segment.get("cue_id", 0))
+        segment_id = str(segment.get("id", ""))
+        parenthetical_exempt = cue_id in cadence_exempt_cue_ids
+        user_plain_exempt = segment_id in user_plain_reasons
+        cadence_exempt = parenthetical_exempt or user_plain_exempt
         highlighted_chars = sum(
             visible_char_count(text[int(item["start"]) : int(item["end"])])
             for item in segment.get("highlights", [])
@@ -681,13 +788,25 @@ def highlight_policy_report(plan: dict[str, Any]) -> dict[str, Any]:
             "highlighted_chars": highlighted_chars,
             "highlight_ranges": len(segment.get("highlights", [])),
             "coverage": coverage,
+            "cadence_exempt": cadence_exempt,
+            "parenthetical_exempt": parenthetical_exempt,
+            "user_plain_exempt": user_plain_exempt,
         }
         segment_reports.append(report_item)
+        if parenthetical_exempt and highlighted_chars:
+            parenthetical_highlight_violations.append(report_item["segment_id"])
+        if user_plain_exempt and highlighted_chars:
+            user_plain_highlight_violations.append(report_item["segment_id"])
         if visible_chars >= DENSE_HIGHLIGHT_MIN_VISIBLE_CHARS and (
             coverage >= DENSE_HIGHLIGHT_WARNING_COVERAGE
             or report_item["highlight_ranges"] >= DENSE_HIGHLIGHT_WARNING_RANGES
         ):
             density_warnings.append(report_item)
+        if cadence_exempt:
+            if current_plain_run:
+                plain_runs.append(current_plain_run)
+                current_plain_run = []
+            continue
         if highlighted_chars:
             if current_plain_run:
                 plain_runs.append(current_plain_run)
@@ -701,11 +820,24 @@ def highlight_policy_report(plan: dict[str, Any]) -> dict[str, Any]:
         run for run in plain_runs if len(run) > MAX_CONSECUTIVE_PLAIN_SEGMENTS
     ]
     return {
-        "valid": not invalid_plain_runs,
+        "valid": not (
+            invalid_plain_runs
+            or parenthetical_highlight_violations
+            or user_plain_highlight_violations
+            or plain_override_errors
+        ),
         "max_consecutive_plain_segments": MAX_CONSECUTIVE_PLAIN_SEGMENTS,
         "longest_plain_run": longest_plain_run,
         "segment_reports": segment_reports,
         "invalid_plain_runs": invalid_plain_runs,
+        "cadence_exempt_segment_ids": [
+            item["segment_id"] for item in segment_reports if item["cadence_exempt"]
+        ],
+        "parenthetical_highlight_violations": parenthetical_highlight_violations,
+        "user_plain_override_segment_ids": sorted(user_plain_reasons),
+        "user_plain_highlight_violations": user_plain_highlight_violations,
+        "plain_overrides": plain_overrides,
+        "plain_override_errors": plain_override_errors,
         "density_warnings": density_warnings,
     }
 
@@ -717,6 +849,17 @@ def validate_highlight_policy(plan: dict[str, Any]) -> tuple[list[str], dict[str
         f'plain run: {", ".join(run)}'
         for run in report["invalid_plain_runs"]
     ]
+    if report["parenthetical_highlight_violations"]:
+        errors.append(
+            "fully parenthetical captions must remain plain; highlighted segments: "
+            + ", ".join(report["parenthetical_highlight_violations"])
+        )
+    if report["user_plain_highlight_violations"]:
+        errors.append(
+            "user-confirmed plain overrides must remain plain; highlighted segments: "
+            + ", ".join(report["user_plain_highlight_violations"])
+        )
+    errors.extend(report["plain_override_errors"])
     return errors, report
 
 
@@ -729,16 +872,32 @@ def command_apply(args: argparse.Namespace) -> None:
     segments = plan.get("segments")
     if not isinstance(segments, list):
         raise FocusError("caption plan has no segments array")
+    plain_overrides = normalize_plain_overrides(choices.get("plain_overrides", []), segments)
+    plan["plain_overrides"] = plain_overrides
+    user_plain_reasons = plain_override_segment_reasons(plain_overrides, segments)
+    parenthetical_cues = fully_parenthetical_cue_ids(segments)
+    required_plain_segment_ids = {
+        str(segment.get("id", ""))
+        for segment in segments
+        if int(segment.get("cue_id", 0)) in parenthetical_cues
+        or str(segment.get("id", "")) in user_plain_reasons
+    }
     for segment in segments:
         segment["highlights"] = []
     unmatched: list[str] = []
     for term in choices.get("global_terms", []):
         found = 0
+        skipped_required_plain = 0
         for segment in segments:
+            if str(segment.get("id", "")) in required_plain_segment_ids:
+                skipped_required_plain += len(
+                    find_occurrences(segment["text"], str(term))
+                )
+                continue
             for start, end in find_occurrences(segment["text"], str(term)):
                 add_range(segment, start, end)
                 found += 1
-        if not found:
+        if not found and not skipped_required_plain:
             unmatched.append(f'global term "{term}"')
     for item_no, item in enumerate(choices.get("items", []), start=1):
         term = str(item.get("text", ""))
@@ -748,6 +907,10 @@ def command_apply(args: argparse.Namespace) -> None:
             targets = [s for s in segments if s["cue_id"] == int(item["cue_id"])]
         else:
             raise FocusError(f"Highlight item {item_no} needs cue_id or segment_id")
+        if any(str(target.get("id", "")) in required_plain_segment_ids for target in targets):
+            raise FocusError(
+                f'Highlight item {item_no} "{term}" targets a required-plain caption'
+            )
         matches: list[tuple[dict[str, Any], int, int]] = []
         for segment in targets:
             matches.extend((segment, start, end) for start, end in find_occurrences(segment["text"], term))
@@ -780,10 +943,12 @@ def command_apply(args: argparse.Namespace) -> None:
     plan["highlight_source"] = str(Path(args.highlights).expanduser().resolve())
     policy = highlight_policy_report(plan)
     plan["highlight_policy"] = {
-        "version": 3,
+        "version": 5,
         "coverage_mode": "informational",
         "density_mode": "warning",
         "max_consecutive_plain_segments": MAX_CONSECUTIVE_PLAIN_SEGMENTS,
+        "fully_parenthetical_mode": "plain_and_cadence_exempt",
+        "user_plain_override_mode": "plain_and_cadence_exempt",
     }
     plan["statistics"] = {
         **plan.get("statistics", {}),
@@ -794,6 +959,9 @@ def command_apply(args: argparse.Namespace) -> None:
         ),
         "longest_plain_run": policy["longest_plain_run"],
         "dense_highlight_warning_count": len(policy["density_warnings"]),
+        "user_plain_override_segment_count": len(
+            policy["user_plain_override_segment_ids"]
+        ),
     }
     write_json(Path(args.output).expanduser().resolve(), plan)
     print(json.dumps(plan["statistics"], ensure_ascii=False))
@@ -1234,6 +1402,22 @@ def command_review(args: argparse.Namespace) -> None:
         for run in policy["invalid_plain_runs"]:
             lines.append(
                 f'- 字幕段 {" → ".join(run)}：连续 {len(run)} 句没有重点'
+            )
+        for segment_id in policy["parenthetical_highlight_violations"]:
+            lines.append(f"- 字幕段 {segment_id}：完整括号字幕不能设置高亮")
+        for segment_id in policy["user_plain_highlight_violations"]:
+            lines.append(f"- 字幕段 {segment_id}：用户确认保留白字，不能设置高亮")
+        for error in policy["plain_override_errors"]:
+            lines.append(f"- 白字例外配置错误：{markdown_escape_inline(error)}")
+    if policy["plain_overrides"]:
+        lines.extend(["", "## 用户确认的白字例外", ""])
+        for override in policy["plain_overrides"]:
+            if "cue_id" in override:
+                target = f'字幕条 {override["cue_id"]}'
+            else:
+                target = f'字幕段 {override["segment_id"]}'
+            lines.append(
+                f'- {target}：{markdown_escape_inline(str(override["reason"]))}'
             )
     if policy["density_warnings"]:
         lines.extend(["", "## 建议复核", ""])

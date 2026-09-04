@@ -87,11 +87,23 @@ class SubtitleFocusTest(unittest.TestCase):
         )
         return corrected, review, lock, plan
 
-    def apply_highlights(self, plan_path, items, name="caption-plan-highlighted.json"):
+    def apply_highlights(
+        self,
+        plan_path,
+        items,
+        name="caption-plan-highlighted.json",
+        plain_overrides=None,
+        global_terms=None,
+    ):
         highlights = self.work / f"{name}.highlights.json"
         highlights.write_text(
             json.dumps(
-                {"version": 1, "global_terms": [], "items": items},
+                {
+                    "version": 1,
+                    "global_terms": global_terms or [],
+                    "items": items,
+                    "plain_overrides": plain_overrides or [],
+                },
                 ensure_ascii=False,
             ),
             encoding="utf-8",
@@ -503,6 +515,120 @@ class SubtitleFocusTest(unittest.TestCase):
         review_text = review.read_text(encoding="utf-8")
         self.assertIn("# 完整字幕稿（需要调整）", review_text)
         self.assertIn("字幕段 2-1 → 3-1：连续 2 句没有重点", review_text)
+
+    def test_fully_parenthetical_cue_stays_plain_and_breaks_cadence(self):
+        plan = {
+            "segments": [
+                {"id": "1-1", "cue_id": 1, "text": "还有下一句", "highlights": []},
+                {"id": "2-1", "cue_id": 2, "text": "（拖动滑轨", "highlights": []},
+                {"id": "2-2", "cue_id": 2, "text": "的时候）", "highlights": []},
+                {"id": "3-1", "cue_id": 3, "text": "好如果你觉得没问题", "highlights": []},
+            ]
+        }
+        errors, report = focus.validate_highlight_policy(plan)
+        self.assertEqual(errors, [])
+        self.assertEqual(report["longest_plain_run"], 1)
+        self.assertEqual(report["cadence_exempt_segment_ids"], ["2-1", "2-2"])
+
+    def test_fully_parenthetical_cue_rejects_highlight(self):
+        plan = {
+            "segments": [
+                {
+                    "id": "1-1",
+                    "cue_id": 1,
+                    "text": "（画中画声音）",
+                    "highlights": [{"start": 1, "end": 4, "text": "画中画"}],
+                }
+            ]
+        }
+        errors, report = focus.validate_highlight_policy(plan)
+        self.assertEqual(report["parenthetical_highlight_violations"], ["1-1"])
+        self.assertTrue(any("must remain plain" in error for error in errors))
+
+    def test_inline_parentheses_still_participate_in_cadence(self):
+        plan = {
+            "segments": [
+                {
+                    "id": "1-1",
+                    "cue_id": 1,
+                    "text": "关键词（字幕）高亮功能",
+                    "highlights": [],
+                },
+                {"id": "2-1", "cue_id": 2, "text": "还有下一句", "highlights": []},
+            ]
+        }
+        errors, report = focus.validate_highlight_policy(plan)
+        self.assertEqual(report["cadence_exempt_segment_ids"], [])
+        self.assertTrue(any("highlight cadence" in error for error in errors))
+
+    def test_user_confirmed_plain_override_breaks_cadence_without_parentheses(self):
+        corrected, _, _, plan_path = self.build_locked_plan()
+        highlighted = self.apply_highlights(
+            plan_path,
+            [{"cue_id": 1, "text": "华纹"}],
+            "user-plain-override.json",
+            plain_overrides=[
+                {"cue_id": 2, "reason": "用户明确要求画中画内容保持白字"}
+            ],
+        )
+        focus.command_validate(
+            namespace(plan=str(highlighted), srt=str(corrected), video=None, tolerance_ms=100)
+        )
+        plan = focus.load_json(highlighted)
+        self.assertEqual(plan["highlight_policy"]["version"], 5)
+        self.assertEqual(plan["statistics"]["user_plain_override_segment_count"], 1)
+        errors, report = focus.validate_highlight_policy(plan)
+        self.assertEqual(errors, [])
+        self.assertEqual(report["user_plain_override_segment_ids"], ["2-1"])
+        self.assertEqual(report["longest_plain_run"], 1)
+        review = self.work / "user-plain-override-review.md"
+        focus.command_review(namespace(plan=str(highlighted), output=str(review)))
+        review_text = review.read_text(encoding="utf-8")
+        self.assertIn("## 用户确认的白字例外", review_text)
+        self.assertIn("字幕条 2：用户明确要求画中画内容保持白字", review_text)
+
+    def test_plain_override_requires_user_confirmed_reason(self):
+        _, _, _, plan_path = self.build_locked_plan()
+        with self.assertRaisesRegex(focus.FocusError, "user-confirmed reason"):
+            self.apply_highlights(
+                plan_path,
+                [{"cue_id": 1, "text": "华纹"}],
+                "missing-plain-override-reason.json",
+                plain_overrides=[{"cue_id": 2}],
+            )
+
+    def test_explicit_highlight_cannot_override_required_plain_caption(self):
+        _, _, _, plan_path = self.build_locked_plan()
+        with self.assertRaisesRegex(focus.FocusError, "required-plain caption"):
+            self.apply_highlights(
+                plan_path,
+                [
+                    {"cue_id": 1, "text": "华纹"},
+                    {"cue_id": 2, "text": "Video Kit"},
+                ],
+                "plain-highlight-conflict.json",
+                plain_overrides=[
+                    {"cue_id": 2, "reason": "用户明确要求这句不加粗"}
+                ],
+            )
+
+    def test_global_term_is_skipped_inside_required_plain_caption(self):
+        corrected, _, _, plan_path = self.build_locked_plan()
+        highlighted = self.apply_highlights(
+            plan_path,
+            [{"cue_id": 1, "text": "华纹"}],
+            "plain-global-term-skip.json",
+            plain_overrides=[
+                {"cue_id": 2, "reason": "用户明确要求这句不加粗"}
+            ],
+            global_terms=["Video Kit"],
+        )
+        focus.command_validate(
+            namespace(plan=str(highlighted), srt=str(corrected), video=None, tolerance_ms=100)
+        )
+        plan = focus.load_json(highlighted)
+        cue_two = next(segment for segment in plan["segments"] if segment["cue_id"] == 2)
+        self.assertEqual(cue_two["highlights"], [])
 
     def test_highlight_policy_allows_full_short_sentence_and_reports_coverage(self):
         corrected, _, _, plan_path = self.build_locked_plan()

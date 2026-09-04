@@ -6,6 +6,12 @@
 {
   "version": 1,
   "global_terms": ["Claude Code"],
+  "plain_overrides": [
+    {
+      "cue_id": 19,
+      "reason": "用户明确要求画中画内容保持白字"
+    }
+  ],
   "items": [
     {
       "cue_id": 14,
@@ -33,6 +39,9 @@ Rules:
 - Multiple items may share one `cue_id` when two phrases both deserve emphasis (`卡顿感` and `不衔接感`).
 - Highlight the headword, not the qualifier: `Prompt` not `第二段 Prompt`, unless the qualifier is the point.
 - The policy is evaluated on rendered caption segments, not raw SRT blocks. Every pair of adjacent segments must include at least one segment with a highlight; two consecutive plain segments fail validation.
+- A cue whose complete text is enclosed by matching Chinese `（）` or ASCII `()` parentheses is treated as an offscreen/PiP aside. All of its rendered segments must stay plain, and the cue separates cadence runs. Parentheses inside an otherwise normal sentence do not create this exemption.
+- A user-confirmed request to keep a specific cue or segment plain outranks cadence. Record it in `plain_overrides` with exactly one `cue_id` or `segment_id` and a non-empty reason. The target stays plain and separates cadence runs even when it is not parenthetical. Do not infer this exception merely because a caption seems secondary, and do not add a nearby filler highlight to compensate.
+- `global_terms` are skipped inside required-plain captions. An explicit highlight item that targets a required-plain caption is rejected as a conflict.
 - Highlights must be complete words, product names, or meaning-bearing phrases. Never cut `鲸鱼` down to `鲸` merely to reduce coverage.
 - A short semantically atomic segment may be highlighted in full. A longer segment should normally keep one primary meaning-bearing phrase, or two only for a genuine parallel or contrast.
 - Coverage is recorded per segment and for the whole plan. It never fails validation. A longer segment that is mostly highlighted, or has three or more highlight ranges, receives a non-blocking density warning after the complete manuscript.
@@ -78,10 +87,12 @@ Applied plans also record this deterministic policy:
 ```json
 {
   "highlight_policy": {
-    "version": 3,
+    "version": 5,
     "coverage_mode": "informational",
     "density_mode": "warning",
-    "max_consecutive_plain_segments": 1
+    "max_consecutive_plain_segments": 1,
+    "fully_parenthetical_mode": "plain_and_cadence_exempt",
+    "user_plain_override_mode": "plain_and_cadence_exempt"
   }
 }
 ```

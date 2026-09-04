@@ -54,14 +54,14 @@ A one-word correction can invalidate every derived artifact. In the production a
 </p>
 
 1. **Proof + lock** — review every cue, apply only confirmed exact-text corrections, then lock the SRT by hash.
-2. **Highlights** — choose complete meaning-bearing words or phrases, then send one complete manuscript with those terms bolded in place; keep every adjacent pair from going completely plain.
+2. **Highlights** — choose complete meaning-bearing words or phrases, then send one complete manuscript with those terms bolded in place; keep every adjacent pair from going completely plain unless the user explicitly confirms a targeted plain-caption exception.
 3. **Style + sample** — keep the default vertical position at 82%, or derive a versioned project override from a supplied reference screenshot; then render a short sample for approval.
 4. **Burn + frame QA** — after sample approval, burn the complete video and extract every corrected cue, every highlighted segment, and entry/middle/exit frames from that final render.
 5. **Delivery** — write one manifest with video, SRT, plan, style, correction, review, and handoff hashes.
 
 The Skill stops for human approval after text corrections, highlight selection, and the short sample. It never proceeds from a style reference directly to a full-video render.
 
-Highlight continuity is deterministic: at most one rendered caption segment may remain plain in a row. Highlights must be complete words, product names, or meaningful phrases; the Skill must not split a word to satisfy a percentage or choose filler merely to satisfy cadence. A short sentence may be highlighted in full when the entire sentence is one semantic point. A longer sentence normally keeps one primary phrase, or two only for a genuine parallel or contrast. Coverage never blocks validation or rendering; dense highlighting in a longer segment appears as a review warning after the complete Markdown-bold manuscript.
+Highlight continuity is deterministic: at most one rendered caption segment may remain plain in a row. A fully parenthetical aside stays plain automatically. When the user explicitly says a PiP, offscreen line, or any specific cue/segment must stay plain, that choice outranks cadence and is recorded with its target and reason; the exception separates cadence runs, and the Agent cannot infer one on its own. Highlights must be complete words, product names, or meaningful phrases; the Skill must not split a word to satisfy a percentage or choose filler merely to satisfy cadence. A short sentence may be highlighted in full when the entire sentence is one semantic point. A longer sentence normally keeps one primary phrase, or two only for a genuine parallel or contrast. Coverage never blocks validation or rendering; dense highlighting in a longer segment appears as a review warning after the complete Markdown-bold manuscript.
 
 ## Layered glossaries
 
@@ -250,7 +250,7 @@ python3 -m py_compile skill/scripts/subtitle_focus.py
 python3 scripts/build_skill_package.py
 ```
 
-The eighteen-test suite covers highlight cadence, full short-sentence highlighting, non-blocking long-sentence density warnings, real-pixel auto-fit on vertical video, the single 350-entry public glossary boundary, explicit glossary choices, SRT preservation, plain-MD rejection, a real FFmpeg end-to-end render, stale-SRT rejection, reference provenance, frame QA, final-video hashes, and handoff generation.
+The twenty-five-test suite covers highlight cadence, parenthetical and user-confirmed plain-caption exceptions, conflict handling, full short-sentence highlighting, non-blocking long-sentence density warnings, real-pixel auto-fit on vertical video, the single 350-entry public glossary boundary, explicit glossary choices, SRT preservation, plain-MD rejection, a real FFmpeg end-to-end render, stale-SRT rejection, reference provenance, frame QA, final-video hashes, and handoff generation.
 
 ## Defaults and limits
 
@@ -260,7 +260,7 @@ The eighteen-test suite covers highlight cadence, full short-sentence highlighti
 | Body size | Starts at 4.8% of frame height and auto-shrinks to the safe width |
 | Caption center | 82% of frame height |
 | Highlight | 1.34× body, `#FFD600`, dark outline |
-| Highlight cadence | At most one consecutive plain caption segment |
+| Highlight cadence | At most one consecutive plain caption segment; explicit user-confirmed plain exceptions outrank cadence |
 | Highlight density | Never blocks; short atomic captions may be 100% highlighted, while dense long captions receive a review warning |
 | Bubble | `#505050`, 69% opacity, 28% padding, 40% corner |
 
