@@ -1,0 +1,9 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>字幕高亮审核 · Subtitle Focus</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head><body>
+<header><div class="brand">SUBTITLE FOCUS <span>本机审核</span></div><h1 id="title">正在载入字幕…</h1><p>点词或拖选文字，切换黄色强调。确认后保存到本机归档目录，无需下载，也无需安装 Obsidian。</p><p class="archive-location">归档目录：<span id="archive-directory">载入中…</span></p><p id="test-banner" hidden>链路验收材料 · 此次操作不代表正式成片验收</p></header>
+<main><section class="toolbar"><div><strong id="count"></strong><span id="save-status" role="status">连接中</span></div><div class="tools"><button id="undo" disabled>撤销</button><button id="redo" disabled>重做</button><button id="reset">恢复初稿</button><button id="export">导出备份</button><label class="button">导入备份<input id="import" type="file" accept="application/json" hidden></label><button id="retry" hidden>重试保存</button></div></section>
+<p id="notice" role="alert"></p><section id="receipt" hidden><strong id="receipt-title"></strong><p>高亮方案已归档。样片与全片仍需分别验收。</p><a id="record-link" target="_blank">查看高亮确认记录</a> <span id="sample-status"></span><video id="sample" controls playsinline hidden></video></section>
+<details id="source-panel" hidden><summary>播放原片 · 检查时间位置</summary><video id="source" controls playsinline preload="metadata"></video></details>
+<div id="rows" aria-label="完整字幕"></div></main>
+<footer><span>黄色 = 字幕强调　·　白字同样是你的选择</span><button class="primary" id="finish" disabled>确认并生成样片</button></footer>
+<dialog id="confirm-dialog"><h2>确认这一版高亮？</h2><p>将保存全部黄色范围和白字选择，并生成带时间码的高亮确认记录。后续修改需要重新确认，旧版本会保留。</p><p id="confirm-action"></p><p id="confirm-detail"></p><div class="dialog-actions"><button id="cancel">继续修改</button><button id="confirm" class="primary">确认并生成样片</button></div></dialog>
+</body></html>

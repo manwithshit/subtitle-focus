@@ -46,7 +46,7 @@ Rules:
 - A short semantically atomic segment may be highlighted in full. A longer segment should normally keep one primary meaning-bearing phrase, or two only for a genuine parallel or contrast.
 - Coverage is recorded per segment and for the whole plan. It never fails validation. A longer segment that is mostly highlighted, or has three or more highlight ranges, receives a non-blocking density warning after the complete manuscript.
 - Do not highlight filler, transitions, or low-information words solely to satisfy cadence. If no meaningful phrase exists, leave the cadence conflict visible for user review.
-- `apply` always writes the candidate plan so `review` can show the complete manuscript with proposed highlights rendered as Markdown bold. It must not output a separate keyword list or keyword-first table. Policy violations appear after the manuscript. `validate`, `preview`, `render`, `frames`, and `deliver` reject a plan that violates cadence. Real fit is checked separately from semantic coverage using actual video pixels and the selected style.
+- `apply` writes a candidate plan. Use `review-web` for all user highlight approval; `review` is only a Markdown diagnostic. Web confirmations store exact code-point ranges and do not round-trip through occurrence matching. See [web-review.md](web-review.md). `validate`, `preview`, `render`, `frames`, and `deliver` reject a plan that violates cadence. Real fit is checked separately from semantic coverage using actual video pixels and the selected style.
 
 ## caption_plan.json
 

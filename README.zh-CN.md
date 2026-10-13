@@ -15,7 +15,7 @@
 
 **字幕美化与重点烧录（Subtitle Focus）** 是一套面向口播视频的 Agent Skill。它的主旋律是生成黄字语义重点，并在用户确认后烧录到完整视频：
 
-1. **黄字语义重点**：选择完整、真正承载意义的词或短语，直接在完整字幕稿中加粗展示，交给用户确认。
+1. **黄字语义重点**：选择完整、真正承载意义的词或短语，在可交互网页中显示完整字幕与黄色标记，交给用户确认。
 2. **可选样式校准**：用户提供参考截图时，为当前项目调整字幕位置、字号和安全宽度，并保持统一的颜色与底条样式。
 3. **确认后烧录全片**：先生成短样片；文字、高亮和样片都确认后，才把字幕烧录到完整视频。
 
@@ -54,14 +54,14 @@
 </p>
 
 1. **校对锁定**：逐条核对字幕，只执行用户确认的精确替换，然后按 SHA 锁定 SRT。
-2. **高亮确认**：只选择完整、真正承载意义的词或短语，直接在完整字幕稿中加粗展示；任意连续两句至少有一句带重点，但用户明确确认的指定白字例外优先。
+2. **高亮确认**：只选择完整、真正承载意义的词或短语，在网页完整字幕中直接标黄；任意连续两句至少有一句带重点，但用户明确确认的指定白字例外优先。
 3. **样式与样片**：没有参考图时保持默认高度 82%；收到参考截图时，生成当前项目独立的版本化样式，再渲染短样片等待确认。
 4. **全片烧录与抽帧**：样片确认后烧录完整视频，并从该成片中抽取所有修改字幕、所有高亮字幕和首中尾画面。
 5. **交付登记**：用唯一 manifest 记录视频、SRT、计划、样式、修改、抽帧和 handoff 的路径与指纹。
 
 文字修改、高亮选择和样片都必须经过用户确认，不能由 Agent 自己跳闸，也不能拿到参考图后直接进入全片烧录。
 
-高亮连续性由脚本确定性检查：最多只能连续一条渲染字幕不带重点。完整括号包裹的话外音或画中画字幕自动保持白字；用户明确要求某条画中画、话外音或指定字幕保持白字时，这项要求优先于连续高亮规则，并记录目标字幕与原因、切断前后节奏。Agent 不能自行推断例外，也不能在附近拿口水词凑高亮。重点必须是完整词、产品名或有意义的短语，不能为了比例拆词。短句本身就是一个完整重点时，可以 100% 高亮；长句默认只保留一个主要语义词组，真正并列或对比时才用两个。占比不阻断验证或渲染；长句重点过密时，完整粗体稿后会附上复核提示。
+高亮连续性由脚本确定性检查：最多只能连续一条渲染字幕不带重点。完整括号包裹的话外音或画中画字幕自动保持白字；用户明确要求某条画中画、话外音或指定字幕保持白字时，这项要求优先于连续高亮规则，并记录目标字幕与原因、切断前后节奏。Agent 不能自行推断例外，也不能在附近拿口水词凑高亮。重点必须是完整词、产品名或有意义的短语，不能为了比例拆词。短句本身就是一个完整重点时，可以 100% 高亮；长句默认只保留一个主要语义词组，真正并列或对比时才用两个。占比不阻断验证或渲染；长句重点过密时，可选的 `review` 诊断会附上复核提示。
 
 ## 分层词库
 
@@ -107,6 +107,7 @@ ln -s "$(pwd)/skill" ~/.claude/skills/subtitle-focus
 - Python 3.9+
 - 带 FreeType 的 Pillow
 - 带 `overlay` 滤镜的 `ffmpeg` 与 `ffprobe`
+- 用于交互审核的现代浏览器；Obsidian 为可选项
 
 ```bash
 python3 skill/scripts/subtitle_focus.py doctor
@@ -147,16 +148,21 @@ python3 "$SCRIPT" apply \
   --highlights "$WORK/highlight.json" \
   --output "$WORK/caption-plan.highlighted.json"
 
-python3 "$SCRIPT" review \
+python3 "$SCRIPT" review-web \
   --plan "$WORK/caption-plan.highlighted.json" \
-  --output "$WORK/highlight-review.md"
+  --output-dir "$WORK/review" \
+  --video /abs/input.mp4
+
+# 用户确认后，从 review/session.json 读取 active_version。
+# 以下以 v001 为例，请使用当前有效版本。
+APPROVED_PLAN="$WORK/review/v001/caption-plan.json"
 
 python3 "$SCRIPT" validate \
-  --plan "$WORK/caption-plan.highlighted.json" \
+  --plan "$APPROVED_PLAN" \
   --video /abs/input.mp4
 ```
 
-先把字幕修改表交给用户确认。进入高亮确认时，直接发送重点已加粗的完整字幕稿，不先发送关键词清单或高亮表。确认前不渲染。
+先把字幕修改表交给用户确认。进入高亮确认时，打开可交互审核网页；用户点击确认并成功归档后才能生成样片。Markdown 仅作追溯记录。
 
 ## 参考图样式
 
@@ -173,13 +179,13 @@ python3 "$SCRIPT" style \
 
 python3 "$SCRIPT" preview \
   --video /abs/input.mp4 \
-  --plan "$WORK/caption-plan.highlighted.json" \
+  --plan "$APPROVED_PLAN" \
   --style "$WORK/style-v1.json" \
   --cue 2 \
   --output "$WORK/cue-2.png"
 
 python3 "$SCRIPT" validate \
-  --plan "$WORK/caption-plan.highlighted.json" \
+  --plan "$APPROVED_PLAN" \
   --video /abs/input.mp4 \
   --style "$WORK/style-v1.json"
 ```
@@ -191,14 +197,14 @@ python3 "$SCRIPT" validate \
 ```bash
 python3 "$SCRIPT" render \
   --video /abs/input.mp4 \
-  --plan "$WORK/caption-plan.highlighted.json" \
+  --plan "$APPROVED_PLAN" \
   --style "$WORK/style-v1.json" \
   --output "$WORK/final-subtitled.mp4"
 
 python3 "$SCRIPT" frames \
   --video "$WORK/final-subtitled.mp4" \
   --already-burned \
-  --plan "$WORK/caption-plan.highlighted.json" \
+  --plan "$APPROVED_PLAN" \
   --style "$WORK/style-v1.json" \
   --corrections "$WORK/corrections.json" \
   --output-dir "$WORK/review-frames"
@@ -206,7 +212,7 @@ python3 "$SCRIPT" frames \
 python3 "$SCRIPT" deliver \
   --video "$WORK/final-subtitled.mp4" \
   --srt "$WORK/locked-text.srt" \
-  --plan "$WORK/caption-plan.highlighted.json" \
+  --plan "$APPROVED_PLAN" \
   --style "$WORK/style-v1.json" \
   --corrections "$WORK/corrections.json" \
   --review-dir "$WORK/review-frames" \
@@ -227,7 +233,8 @@ python3 "$SCRIPT" deliver \
 | `correct` | 只执行已确认的精确文字替换，不改时间轴 |
 | `lock` | 用内容指纹锁定确认后的 SRT |
 | `plan` | 把锁定 SRT 切成字幕段 |
-| `apply` / `review` | 应用并审核语义高亮 |
+| `review-web` | 网页修改高亮、确认归档并生成样片 |
+| `apply` / `review` | 应用高亮／生成可选诊断 |
 | `style` / `preview` | 生成并检查版本化样式 |
 | `render` | 烧录字幕 |
 | `frames` | 从最终成片抽取修改与高亮证据 |
@@ -245,11 +252,11 @@ python3 "$SCRIPT" deliver \
 
 ```bash
 python3 -m unittest discover -s tests -v
-python3 -m py_compile skill/scripts/subtitle_focus.py
+python3 -m py_compile skill/scripts/subtitle_focus.py skill/scripts/subtitle_review.py
 python3 scripts/build_skill_package.py
 ```
 
-25 项测试覆盖高亮连续性、完整括号与用户确认的白字例外、冲突处理、短句 100% 高亮、长句过密提示不阻断、竖屏真实像素自动缩放、公开包只含 350 条基础词、词库显式选择、SRT 格式保留、纯 MD 拒绝、真实 FFmpeg 端到端烧录、旧 SRT 失效、参考图来源、抽帧、交付 SHA 和 handoff。
+回归测试覆盖高亮连续性、完整括号与用户确认的白字例外、冲突处理、短句 100% 高亮、长句过密提示不阻断、竖屏真实像素自动缩放、公开包只含 350 条基础词、词库显式选择、SRT 格式保留、纯 MD 拒绝、真实 FFmpeg 端到端烧录、旧 SRT 失效、参考图来源、抽帧、交付 SHA 和 handoff。
 
 ## 默认值与边界
 
@@ -277,3 +284,9 @@ python3 scripts/build_skill_package.py
 ## 许可
 
 [MIT](./LICENSE)
+
+## 网页确认、本机归档与可选 Obsidian 查看
+
+高亮统一通过 `review-web` 网页审核。点击词语或拖选切换黄色，支持撤销、重做、本机草稿和备份导入导出。只有用户点击「确认并生成样片」，才保存一套带版本的 SRT 快照、逐字高亮范围、渲染方案、确认回执和黄色 Markdown 记录。**无需安装 Obsidian**：`--output-dir` 可以是任意可写的本机项目文件夹，页面会显示归档目录。使用 Obsidian 时，放在对应仓库内即可查看同一份记录。SRT 快照保留原文与时间码；黄色位置单独保存在 `highlights.json`、渲染方案和可读的 Markdown 记录中。未传入视频时，按钮显示「确认并保存」，仅保存归档。
+
+传入 `--video` 后，确认会自动触发短样片，生成完成可在网页播放；全片仍须样片验收。源字幕变化、旧标签页覆盖、未成功保存都会拒绝确认；重复提交不会产生重复版本。浏览器导出只是草稿备份，不代表批准；不依赖云端，也不承诺唤醒已结束的 AI 对话。详见[网页审核约定](skill/references/web-review.md)。

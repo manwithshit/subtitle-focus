@@ -158,7 +158,7 @@ def source_snapshot(path: Path) -> dict[str, Any]:
 def verify_lock(lock: dict[str, Any], srt: Path) -> dict[str, Any]:
     if lock.get("version") != 1 or lock.get("kind") != "subtitle-focus-srt-lock":
         raise FocusError("Invalid SRT lock manifest")
-    if not lock.get("confirmed"):
+    if not lock.get("confirmed") and not lock.get("test_only"):
         raise FocusError("SRT lock is not human-confirmed")
     actual = source_snapshot(srt)
     expected = lock.get("source", {})
@@ -184,13 +184,19 @@ def verify_plan_source(plan: dict[str, Any], srt_override: Path | None = None) -
             "Source SRT changed after planning; discard the stale plan and regenerate from the confirmed lock"
         )
     lock_info = plan.get("source_lock")
-    if not isinstance(lock_info, dict) or not lock_info.get("confirmed"):
+    if not isinstance(lock_info, dict) or not (lock_info.get("confirmed") or lock_info.get("test_only")):
         raise FocusError("Caption plan is not tied to a confirmed SRT lock")
     if lock_info.get("source_sha256") != actual["sha256"]:
         raise FocusError("Caption plan lock SHA does not match the current SRT")
     expected_cues = int(plan.get("statistics", {}).get("cue_count", 0))
     if expected_cues and actual["cue_count"] != expected_cues:
         raise FocusError("Caption plan cue count no longer matches the current SRT")
+    if plan.get("review_confirmation"):
+        try:
+            import subtitle_review
+            subtitle_review.verify_confirmation(plan)
+        except (ValueError, OSError, KeyError) as exc:
+            raise FocusError(str(exc)) from exc
     return actual
 
 
@@ -582,7 +588,7 @@ def command_correct(args: argparse.Namespace) -> None:
 
 
 def command_lock(args: argparse.Namespace) -> None:
-    if not args.confirmed:
+    if not args.confirmed and not getattr(args, "test_only", False):
         raise FocusError("Refusing to lock SRT without --confirmed after human text review")
     srt = Path(args.srt).expanduser().resolve()
     snapshot = source_snapshot(srt)
@@ -590,7 +596,8 @@ def command_lock(args: argparse.Namespace) -> None:
     manifest = {
         "version": 1,
         "kind": "subtitle-focus-srt-lock",
-        "confirmed": True,
+        "confirmed": bool(args.confirmed),
+        "test_only": bool(getattr(args, "test_only", False)),
         "locked_at": utc_now(),
         "source": snapshot,
     }
@@ -627,7 +634,8 @@ def command_plan(args: argparse.Namespace) -> None:
         "source_lock": {
             "path": str(lock_path),
             "sha256": sha256_file(lock_path),
-            "confirmed": True,
+            "confirmed": bool(lock.get("confirmed")),
+            "test_only": bool(lock.get("test_only")),
             "source_sha256": snapshot["sha256"],
         },
         "segmentation": {"max_chars": args.max_chars, "method": "semantic-punctuation-v1"},
@@ -1549,6 +1557,13 @@ def build_timeline(
     return concat_path
 
 
+def plan_is_test_only(plan):
+    if plan.get("source_lock", {}).get("test_only"):
+        return True
+    info = plan.get("review_confirmation")
+    return bool(info and load_json(Path(info["receipt"])).get("test_only"))
+
+
 def command_render(args: argparse.Namespace) -> None:
     video = Path(args.video).expanduser().resolve()
     output = Path(args.output).expanduser().resolve()
@@ -1571,6 +1586,8 @@ def command_render(args: argparse.Namespace) -> None:
             f'SRT ends at {source["last_end_ms"]}ms but video ends at '
             f'{round(probe["duration"] * 1000)}ms'
         )
+    if plan_is_test_only(plan) and (not args.duration or not 0 < float(args.duration) <= 30):
+        raise FocusError("Test-only SRT may render samples up to 30 seconds, never a full video")
     clip_start = max(0.0, float(args.start or 0.0))
     if clip_start >= probe["duration"]:
         raise FocusError("--start is beyond video duration")
@@ -1826,6 +1843,8 @@ def command_deliver(args: argparse.Namespace) -> None:
     plan_path = Path(args.plan).expanduser().resolve()
     style_path = Path(args.style).expanduser().resolve()
     plan = load_json(plan_path)
+    if plan_is_test_only(plan):
+        raise FocusError("Test-only SRT or review cannot be registered as production delivery")
     style = load_json(style_path)
     errors = validate_plan(plan)
     if errors:
@@ -1989,6 +2008,11 @@ def command_doctor(_: argparse.Namespace) -> None:
         raise FocusError("Environment is not ready")
 
 
+def command_review_web(args):
+    import subtitle_review
+    subtitle_review.serve(args, sys.modules[__name__])
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -2019,7 +2043,9 @@ def build_parser() -> argparse.ArgumentParser:
     lock = sub.add_parser("lock", help="lock a human-confirmed SRT by content hash")
     lock.add_argument("--srt", required=True)
     lock.add_argument("--output", required=True)
-    lock.add_argument("--confirmed", action="store_true")
+    lock_mode = lock.add_mutually_exclusive_group()
+    lock_mode.add_argument("--confirmed", action="store_true")
+    lock_mode.add_argument("--test-only", action="store_true", help="test fixture only, not human text approval")
     lock.set_defaults(func=command_lock)
     plan = sub.add_parser("plan", help="parse and segment a locked SRT file")
     plan.add_argument("--srt", required=True)
@@ -2039,6 +2065,17 @@ def build_parser() -> argparse.ArgumentParser:
     validate.add_argument("--style", help="validate every caption against real video pixels")
     validate.add_argument("--tolerance-ms", type=int, default=100)
     validate.set_defaults(func=command_validate)
+    web = sub.add_parser("review-web", help="local interactive review, versioned local archive and optional sample")
+    web.add_argument("--plan", required=True)
+    web.add_argument("--output-dir", required=True)
+    web.add_argument("--title", default="字幕高亮审核")
+    web.add_argument("--terms", help="JSON array of protected product names and phrases")
+    web.add_argument("--video", help="optional source video; confirmation generates a short sample")
+    web.add_argument("--style")
+    web.add_argument("--sample-seconds", type=float, default=12)
+    web.add_argument("--port", type=int, default=0)
+    web.add_argument("--test-mode", action="store_true")
+    web.set_defaults(func=command_review_web)
     review = sub.add_parser("review", help="print a markdown table of highlight decisions")
     review.add_argument("--plan", required=True)
     review.add_argument("--output")

@@ -1,6 +1,6 @@
 ---
 name: subtitle-focus
-description: Use when the user has a timestamped SRT and source video and primarily wants to generate yellow semantic highlights, review them in a complete manuscript, approve a short sample, and burn captions into the full video. It additionally supports project-level style calibration from an optional reference screenshot, layered glossary suggestions, confirmed text locking, final-frame inspection, and delivery registration. It does not transcribe video, run ASR/OCR, or accept a plain transcript as timeline input.
+description: Use when the user has a timestamped SRT and source video and primarily wants to generate yellow semantic highlights, review them on an interactive local webpage, approve a short sample, and burn captions into the full video. It additionally supports project-level style calibration from an optional reference screenshot, layered glossary suggestions, confirmed text locking, final-frame inspection, and delivery registration. It does not transcribe video, run ASR/OCR, or accept a plain transcript as timeline input.
 ---
 
 # Subtitle Focus｜字幕美化与重点烧录
@@ -33,12 +33,16 @@ SRT 校对锁定 → 高亮确认 → 样片确认 → 全片抽帧 → 交付�
 
 1. Run `plan --lock ...` with `--max-chars 16` unless the user asks otherwise.
 2. Draft `highlight.json` using [highlight-schema.md](references/highlight-schema.md).
-3. Run `apply` and `review`. Adjust the choices until the cadence report passes, then run `validate`.
-4. Send the user the complete caption manuscript in timeline order, with every proposed highlight marked directly in the sentence using Markdown bold. Do not send a separate keyword list or highlight table first. Ask the user to confirm the bold locations or name the sentences that need retargeting.
+3. Run `apply` to create the candidate plan. `review` remains an optional Markdown diagnostic, never the approval surface.
+4. Run `review-web --plan ... --output-dir <project>/edit/subtitles/review --title ...`. Put the review directory inside the matching Obsidian project when Obsidian traceability is required. Supply `--terms` with a project-specific JSON array of protected names; never hardcode one project's vocabulary in the template.
+5. Open the printed local HTTP URL for the user. The page shows the complete timeline, visible yellow highlights, word-click/drag editing, undo/redo, draft saving and backup import/export. The user must personally click **确认并生成样片** (or **确认并保存** when no video is supplied). Never click that button on their behalf, except in a clearly separate `--test-mode` QA session requested for testing.
+6. Read the current `session.json` and its active version's `receipt.json`. Verify the current source, exact plan and archive hashes. Drafts, browser storage, exports, test receipts and old versions are not production approval. The successful receipt atomically publishes SRT snapshot, exact character ranges, highlighted plan and a Markdown record (Obsidian optional). Refer to [web-review.md](references/web-review.md).
+   Use the active version’s archived `caption-plan.json` for all downstream preview, validation, rendering and delivery commands, never the pre-review candidate.
+7. With `--video`, the local service automatically renders only a short sample after confirmation. Wait for `sample-status.json` to say `ready`; inspect the actual sample and show it to the user. This does not grant full-render approval or wake an ended Codex chat. If the chat ended, a later “继续” reads the same local receipt without asking for a download path.
 
-Selection: meaning-bearing complete words or phrases only. Treat each rendered caption segment as one sentence. Every adjacent pair must contain at least one highlighted segment, so a run of unhighlighted sentences can be at most one. A cue whose complete text is enclosed by matching Chinese or ASCII parentheses is an offscreen/PiP aside: keep it plain and treat it as a cadence boundary. Inline parentheses inside a normal sentence do not create this exemption. A user's explicit request to keep a specific cue or segment plain outranks cadence, especially for PiP/offscreen content: record it as a `plain_overrides` entry with the target id and the user-confirmed reason, keep it plain, and treat it as a cadence boundary even without parentheses. Do not invent this exemption merely because content seems secondary, and do not add a nearby filler highlight to compensate. Highlighting every sentence is allowed when it improves continuity. A short semantically atomic sentence may be highlighted in full; a longer sentence should normally keep one primary meaning-bearing phrase, or two only for a genuine parallel or contrast. Do not split a word, product name, or phrase merely to reduce a percentage. Do not highlight filler, transitions, or low-information words just to satisfy cadence. Coverage never blocks a plan. The review adds a non-blocking density warning when a longer segment is mostly highlighted or contains too many highlight ranges, and the user decides from the complete bolded manuscript. If cadence cannot be satisfied with a meaningful highlight or an explicit user exception, report the conflicting segment ids for user review. Never rewrite the locked SRT during highlighting.
+Selection: meaning-bearing complete words or phrases only. Treat each rendered caption segment as one sentence. Every adjacent pair must contain at least one highlighted segment, so a run of unhighlighted sentences can be at most one. A cue whose complete text is enclosed by matching Chinese or ASCII parentheses is an offscreen/PiP aside: keep it plain and treat it as a cadence boundary. Inline parentheses inside a normal sentence do not create this exemption. A user's explicit request to keep a specific cue or segment plain outranks cadence, especially for PiP/offscreen content: record it as a `plain_overrides` entry with the target id and the user-confirmed reason, keep it plain, and treat it as a cadence boundary even without parentheses. Do not invent this exemption merely because content seems secondary, and do not add a nearby filler highlight to compensate. Highlighting every sentence is allowed when it improves continuity. A short semantically atomic sentence may be highlighted in full; a longer sentence should normally keep one primary meaning-bearing phrase, or two only for a genuine parallel or contrast. Do not split a word, product name, or phrase merely to reduce a percentage. Do not highlight filler, transitions, or low-information words just to satisfy cadence. Coverage never blocks a plan. The optional `review` diagnostic adds a non-blocking density warning when a longer segment is mostly highlighted or contains too many highlight ranges, and the user decides from the complete interactive webpage. If cadence cannot be satisfied with a meaningful highlight or an explicit user exception, report the conflicting segment ids for user review. Never rewrite the locked SRT during highlighting.
 
-**STOP.** Do not render until the user confirms the bolded complete manuscript.
+**STOP.** Do not render a production sample until the user confirms the webpage and its complete archive is saved. Further edits invalidate the active confirmation; a new confirmation creates a new version. Never overwrite historical confirmation bundles.
 
 ## Gate 3 — 样片与参考图样式
 
@@ -79,16 +83,21 @@ python3 "$SCRIPT" correct --srt /abs/in.srt --corrections /abs/corrections.json 
 python3 "$SCRIPT" lock --srt /abs/locked-text.srt --output /abs/srt-lock.json --confirmed
 python3 "$SCRIPT" plan --srt /abs/locked-text.srt --lock /abs/srt-lock.json --output /abs/caption-plan.json
 python3 "$SCRIPT" apply --plan /abs/caption-plan.json --highlights /abs/highlight.json --output /abs/caption-plan.highlighted.json
-python3 "$SCRIPT" review --plan /abs/caption-plan.highlighted.json --output /abs/highlight-review.md
+python3 "$SCRIPT" review-web --plan /abs/caption-plan.highlighted.json --output-dir /abs/project/edit/subtitles/review --title "字幕高亮审核" --video /abs/input.mp4
+# After webpage confirmation, replace v001 below with session.json active_version.
 python3 "$SCRIPT" style --base skill/assets/default-style.json --reference-image /abs/demo.png --center-y-ratio 0.73 --output /abs/style-v1.json
-python3 "$SCRIPT" validate --plan /abs/caption-plan.highlighted.json --video /abs/input.mp4 --style /abs/style-v1.json
-python3 "$SCRIPT" preview --video /abs/input.mp4 --plan /abs/caption-plan.highlighted.json --style /abs/style-v1.json --cue 2 --output /abs/cue-2.png
-python3 "$SCRIPT" render --video /abs/input.mp4 --plan /abs/caption-plan.highlighted.json --style /abs/style-v1.json --output /abs/edit/final-subtitled.mp4
-python3 "$SCRIPT" frames --video /abs/edit/final-subtitled.mp4 --already-burned --plan /abs/caption-plan.highlighted.json --style /abs/style-v1.json --corrections /abs/corrections.json --output-dir /abs/edit/review-frames
-python3 "$SCRIPT" deliver --video /abs/edit/final-subtitled.mp4 --srt /abs/locked-text.srt --plan /abs/caption-plan.highlighted.json --style /abs/style-v1.json --corrections /abs/corrections.json --review-dir /abs/edit/review-frames --output /abs/edit/delivery.json
+python3 "$SCRIPT" validate --plan /abs/project/edit/subtitles/review/v001/caption-plan.json --video /abs/input.mp4 --style /abs/style-v1.json
+python3 "$SCRIPT" preview --video /abs/input.mp4 --plan /abs/project/edit/subtitles/review/v001/caption-plan.json --style /abs/style-v1.json --cue 2 --output /abs/cue-2.png
+python3 "$SCRIPT" render --video /abs/input.mp4 --plan /abs/project/edit/subtitles/review/v001/caption-plan.json --style /abs/style-v1.json --output /abs/edit/final-subtitled.mp4
+python3 "$SCRIPT" frames --video /abs/edit/final-subtitled.mp4 --already-burned --plan /abs/project/edit/subtitles/review/v001/caption-plan.json --style /abs/style-v1.json --corrections /abs/corrections.json --output-dir /abs/edit/review-frames
+python3 "$SCRIPT" deliver --video /abs/edit/final-subtitled.mp4 --srt /abs/locked-text.srt --plan /abs/project/edit/subtitles/review/v001/caption-plan.json --style /abs/style-v1.json --corrections /abs/corrections.json --review-dir /abs/edit/review-frames --output /abs/edit/delivery.json
 ```
 
 Run `python3 scripts/subtitle_focus.py <command> --help` for all flags.
+
+## Isolated acceptance testing
+
+When the user explicitly requests end-to-end QA on existing footage, use a separate test folder and an existing exported SRT. `lock --test-only` creates a fixture **without human text approval**; propagate it through `plan` and launch `review-web --test-mode`. Do not silently run formal proofreading, choose personal glossary policies, or convert the fixture to a production lock. Test-only plans can render explicit samples of at most 30 seconds and cannot be registered as a production delivery. User-operated acceptance pages and agent-operated QA sessions must have separate directories. Frame OCR may inspect whether footage already contains burned captions when explicitly requested; it does not recover dialogue or generate SRT timing.
 
 ## Drawing contract
 
