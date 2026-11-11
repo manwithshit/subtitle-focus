@@ -3,8 +3,9 @@
 </p>
 
 <p align="center">
-  <img src="./assets/readme/hero.svg" width="100%" alt="Subtitle Focus: generate yellow semantic highlights, optionally calibrate style from a reference, and burn approved subtitles locally">
+  <img src="./assets/readme/hero-portfolio.webp" width="100%" alt="subtitle-focus — illustrated project cover">
 </p>
+<p align="center"><sub>AI-illustrated cover; see the real screenshots below for the actual interface.</sub></p>
 
 <p align="center">
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License"></a>

@@ -3,8 +3,9 @@
 </p>
 
 <p align="center">
-  <img src="./assets/readme/hero-zh.svg" width="100%" alt="Subtitle Focus：生成黄字语义重点，可选根据参考图校准样式，并在确认后烧录完整视频">
+  <img src="./assets/readme/hero-portfolio.webp" width="100%" alt="subtitle-focus — 项目封面与功能示意">
 </p>
+<p align="center"><sub>封面为 AI 绘制的功能示意，实际界面请看下方真实截图。</sub></p>
 
 <p align="center">
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT 许可"></a>
