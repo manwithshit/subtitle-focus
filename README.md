@@ -194,6 +194,8 @@ python3 "$SCRIPT" validate \
 
 The style stores the reference image path, SHA-256, dimensions, base-style SHA, and explicit overrides.
 
+If the layout reserves a fixed caption strip, add `--band-top-ratio` and `--band-bottom-ratio` (edge pixels ÷ video height). Captions that would leave the strip fail at `validate`, before any sample is rendered, and `validate` reports the smallest top/bottom margins. Full renders copy an AAC source track unchanged instead of re-encoding it.
+
 ## Render, review, deliver
 
 ```bash

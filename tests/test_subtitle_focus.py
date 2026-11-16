@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import importlib.util
+import io
 import json
 import shutil
 import subprocess
@@ -22,6 +24,15 @@ SPEC.loader.exec_module(focus)
 
 def namespace(**kwargs):
     return argparse.Namespace(**kwargs)
+
+
+def audio_packet_hashes(path):
+    result = subprocess.run(
+        ["ffprobe", "-v", "error", "-select_streams", "a:0", "-show_packets",
+         "-show_data_hash", "sha256", "-show_entries", "packet=data_hash", "-of", "json", str(path)],
+        capture_output=True, text=True, check=True,
+    )
+    return [packet["data_hash"] for packet in json.loads(result.stdout)["packets"]]
 
 
 class SubtitleFocusTest(unittest.TestCase):
@@ -692,6 +703,56 @@ class SubtitleFocusTest(unittest.TestCase):
         image = focus.render_segment_canvas(segment, style, 1080, 1924)
         self.assertEqual(image.size, (1080, 1924))
 
+    def test_caption_band_rejects_cards_taller_than_band(self):
+        style = focus.load_json(ROOT / "skill/assets/default-style.json")
+        style.update(center_y_ratio=0.62, band_top_ratio=1116 / 1920, band_bottom_ratio=1278 / 1920)
+        segment = {
+            "id": "7-1",
+            "cue_id": 7,
+            "text": "让界面先去掉AI味",
+            "highlights": [{"start": 6, "end": 9, "text": "AI味"}],
+        }
+        style["font_size_ratio"] = 0.04
+        with self.assertRaisesRegex(focus.FocusError, r"Segment 7-1 .*caption band 1116\.\.1278"):
+            focus.render_segment_canvas(segment, style, 1080, 1920)
+        style["font_size_ratio"] = 0.024
+        box = focus.render_segment_canvas(segment, style, 1080, 1920).getchannel("A").getbbox()
+        self.assertGreaterEqual(box[1], 1116)
+        self.assertLessEqual(box[3], 1278)
+
+    def test_caption_band_style_validation(self):
+        style = {"center_y_ratio": 0.62, "band_top_ratio": 0.58}
+        with self.assertRaisesRegex(focus.FocusError, "set together"):
+            focus.validate_style(style)
+        style["band_bottom_ratio"] = 0.55
+        with self.assertRaisesRegex(focus.FocusError, "below band_bottom_ratio"):
+            focus.validate_style(style)
+        style.update(band_bottom_ratio=0.66, center_y_ratio=0.7)
+        with self.assertRaisesRegex(focus.FocusError, "inside the caption band"):
+            focus.validate_style(style)
+        style["center_y_ratio"] = 0.62
+        focus.validate_style(style)
+        base = ROOT / "skill" / "assets" / "default-style.json"
+        output = self.work / "style-band.json"
+        focus.command_style(
+            namespace(
+                base=str(base),
+                output=str(output),
+                reference_image=None,
+                center_x_ratio=None,
+                center_y_ratio=0.62,
+                safe_width_ratio=None,
+                font_size_ratio=0.024,
+                font_size_min=None,
+                font_size_max=None,
+                band_top_ratio=0.58,
+                band_bottom_ratio=0.66,
+            )
+        )
+        saved = focus.load_json(output)
+        self.assertEqual((saved["band_top_ratio"], saved["band_bottom_ratio"]), (0.58, 0.66))
+        self.assertEqual(saved["_meta"]["overrides"]["band_top_ratio"], 0.58)
+
     def test_public_base_glossary_is_general_and_bounded(self):
         base = focus.load_json(ROOT / "skill/assets/glossaries/base.json")
         items = base["forbidden_terms"]
@@ -810,6 +871,59 @@ class SubtitleFocusTest(unittest.TestCase):
                 tolerance_ms=100,
             )
         )
+        self.assertEqual(audio_packet_hashes(rendered), audio_packet_hashes(video))
+        sample = self.work / "sample.mp4"
+        focus.command_render(
+            namespace(
+                video=str(video),
+                plan=str(highlighted),
+                style=str(style_path),
+                output=str(sample),
+                start=0.5,
+                duration=1.0,
+                crf=23,
+                preset="ultrafast",
+                keep_workdir=None,
+                tolerance_ms=100,
+            )
+        )
+        self.assertAlmostEqual(focus.probe_video(sample)["duration"], 1.0, delta=0.1)
+
+        band_style = json.loads(style_path.read_text(encoding="utf-8"))
+        band_style.update(band_top_ratio=0.65, band_bottom_ratio=0.81)
+        band_style_path = self.work / "style-band.json"
+        band_style_path.write_text(json.dumps(band_style), encoding="utf-8")
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            focus.command_validate(
+                namespace(
+                    plan=str(highlighted),
+                    srt=str(corrected),
+                    video=str(video),
+                    style=str(band_style_path),
+                    tolerance_ms=100,
+                )
+            )
+        layout = json.loads(stdout.getvalue())["layout"]
+        self.assertEqual(layout["band"], [624, 778])
+        self.assertGreaterEqual(layout["band_margin_top_min"], 0)
+        self.assertGreaterEqual(layout["band_margin_bottom_min"], 0)
+        self.assertGreaterEqual(
+            layout["card_bottom_max"] - layout["card_top_min"], layout["card_height_max"]
+        )
+        band_style.update(band_top_ratio=0.72, band_bottom_ratio=0.74)
+        band_style_path.unlink()
+        band_style_path.write_text(json.dumps(band_style), encoding="utf-8")
+        with self.assertRaisesRegex(focus.FocusError, "leaves caption band"):
+            focus.command_validate(
+                namespace(
+                    plan=str(highlighted),
+                    srt=str(corrected),
+                    video=str(video),
+                    style=str(band_style_path),
+                    tolerance_ms=100,
+                )
+            )
         review_dir = self.work / "review-frames"
         focus.command_frames(
             namespace(

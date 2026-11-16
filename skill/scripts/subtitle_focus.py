@@ -1042,17 +1042,32 @@ def command_validate(args: argparse.Namespace) -> None:
         style_path = Path(style_value).expanduser().resolve()
         style = load_json(style_path)
         validate_style(style)
+        width, height = int(video_result["width"]), int(video_result["height"])
+        boxes: list[tuple[str, tuple[int, int, int, int]]] = []
         for segment in segments:
-            canvas = render_segment_canvas(
-                segment, style, int(video_result["width"]), int(video_result["height"])
-            )
+            canvas = render_segment_canvas(segment, style, width, height)
+            box = canvas.getchannel("A").getbbox()
             canvas.close()
+            if box:
+                boxes.append((str(segment["id"]), box))
         layout_result = {
             "style_sha256": sha256_file(style_path),
             "segments_checked": len(segments),
-            "width": int(video_result["width"]),
-            "height": int(video_result["height"]),
+            "width": width,
+            "height": height,
         }
+        if boxes:
+            widest = max(boxes, key=lambda item: item[1][2] - item[1][0])
+            layout_result["card_top_min"] = min(box[1] for _, box in boxes)
+            layout_result["card_bottom_max"] = max(box[3] for _, box in boxes)
+            layout_result["card_height_max"] = max(box[3] - box[1] for _, box in boxes)
+            layout_result["widest_segment"] = {"id": widest[0], "x": [widest[1][0], widest[1][2]]}
+        band = caption_band(style)
+        if band and boxes:
+            band_top, band_bottom = round(height * band[0]), round(height * band[1])
+            layout_result["band"] = [band_top, band_bottom]
+            layout_result["band_margin_top_min"] = layout_result["card_top_min"] - band_top
+            layout_result["band_margin_bottom_min"] = band_bottom - layout_result["card_bottom_max"]
     highlighted_chars = sum(
         visible_char_count(segment["text"][h["start"] : h["end"]])
         for segment in segments
@@ -1151,6 +1166,23 @@ def validate_style(style: dict[str, Any]) -> None:
         raise FocusError("Style font sizes must be positive")
     if int(style.get("font_size_min", 34)) > int(style.get("font_size_max", 112)):
         raise FocusError("Style font_size_min cannot exceed font_size_max")
+    band = caption_band(style)
+    if band:
+        top, bottom = band
+        if not 0 <= top < bottom <= 1:
+            raise FocusError("Style band_top_ratio must be below band_bottom_ratio, both within [0, 1]")
+        if not top < float(style.get("center_y_ratio", 0.82)) < bottom:
+            raise FocusError("Style center_y_ratio must lie inside the caption band")
+
+
+def caption_band(style: dict[str, Any]) -> tuple[float, float] | None:
+    """Optional vertical caption band as height ratios; both edges or neither."""
+    top, bottom = style.get("band_top_ratio"), style.get("band_bottom_ratio")
+    if top is None and bottom is None:
+        return None
+    if top is None or bottom is None:
+        raise FocusError("Style band_top_ratio and band_bottom_ratio must be set together")
+    return float(top), float(bottom)
 
 
 def command_style(args: argparse.Namespace) -> None:
@@ -1163,6 +1195,8 @@ def command_style(args: argparse.Namespace) -> None:
         "font_size_ratio": args.font_size_ratio,
         "font_size_min": args.font_size_min,
         "font_size_max": args.font_size_max,
+        "band_top_ratio": getattr(args, "band_top_ratio", None),
+        "band_bottom_ratio": getattr(args, "band_bottom_ratio", None),
     }
     applied = {key: value for key, value in overrides.items() if value is not None}
     style.update(applied)
@@ -1193,6 +1227,7 @@ def command_style(args: argparse.Namespace) -> None:
             {
                 "output": str(output),
                 "center_y_ratio": style.get("center_y_ratio", 0.82),
+                "band": caption_band(style),
                 "reference_demo": reference,
                 "overrides": applied,
             },
@@ -1326,6 +1361,15 @@ def render_segment_canvas(
     top = int(round(center_y - card_height / 2))
     left = min(max(0, left), width - card_width)
     top = min(max(0, top), height - card_height)
+    band = caption_band(style)
+    if band:
+        band_top, band_bottom = round(height * band[0]), round(height * band[1])
+        if top < band_top or top + card_height > band_bottom:
+            raise FocusError(
+                f'Segment {segment["id"]} card y {top}..{top + card_height} '
+                f"({card_height}px high) leaves caption band {band_top}..{band_bottom} "
+                f"({band_bottom - band_top}px); lower font_size_ratio or move center_y_ratio"
+            )
     canvas = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     canvas_draw = ImageDraw.Draw(canvas)
     canvas_draw.rounded_rectangle(
@@ -1609,6 +1653,10 @@ def command_render(args: argparse.Namespace) -> None:
         concat_path = build_timeline(
             plan, style, probe["width"], probe["height"], clip_start, clip_duration, workdir
         )
+        audio = next((s for s in probe["streams"] if s.get("codec_type") == "audio"), None)
+        # Copy a mixed AAC track on full renders instead of re-encoding it a second time.
+        copy_audio = bool(audio) and audio.get("codec_name") == "aac" and not clip_start
+        audio_args = ["-c:a", "copy"] if copy_audio else ["-c:a", "aac", "-b:a", "192k"]
         command = ["ffmpeg", "-hide_banner", "-loglevel", "error"]
         if clip_start:
             command += ["-ss", f"{clip_start:.6f}"]
@@ -1618,7 +1666,7 @@ def command_render(args: argparse.Namespace) -> None:
             "-filter_complex", "[1:v]format=rgba[ov];[0:v][ov]overlay=0:0:eof_action=pass:shortest=0[v]",
             "-map", "[v]", "-map", "0:a?", "-t", f"{clip_duration:.6f}",
             "-c:v", "libx264", "-preset", args.preset, "-crf", str(args.crf),
-            "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k",
+            "-pix_fmt", "yuv420p", *audio_args,
             "-movflags", "+faststart", str(output),
         ]
         result = subprocess.run(command, capture_output=True, text=True)
@@ -1630,6 +1678,7 @@ def command_render(args: argparse.Namespace) -> None:
         if work_context:
             work_context.cleanup()
     rendered = probe_video(output)
+    rendered["audio"] = "copy" if copy_audio else ("aac-192k" if audio else None)
     print(json.dumps({"output": str(output), **rendered}, ensure_ascii=False))
 
 
@@ -2090,6 +2139,8 @@ def build_parser() -> argparse.ArgumentParser:
     style.add_argument("--font-size-ratio", type=float)
     style.add_argument("--font-size-min", type=int)
     style.add_argument("--font-size-max", type=int)
+    style.add_argument("--band-top-ratio", type=float, help="caption band top edge / video height")
+    style.add_argument("--band-bottom-ratio", type=float, help="caption band bottom edge / video height")
     style.set_defaults(func=command_style)
     preview = sub.add_parser("preview", help="render one highlighted subtitle card as PNG")
     preview.add_argument("--plan", required=True)

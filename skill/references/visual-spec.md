@@ -10,6 +10,8 @@ Numbers live in [default-style.json](../assets/default-style.json). Copy that fi
 - Body: white, no outline.
 - Bubble: gray `[80,80,80]` at alpha 176 (69% opacity). Padding 28% of the highlight size on both axes. Corner radius is Jianying-style `bubble_corner_percent` 40 — 40% of half the bubble height.
 - Default position: `center_y_ratio` 0.82. Keep this default when no reference demo is supplied.
+- Optional caption band: `band_top_ratio` / `band_bottom_ratio` (both or neither, ratios of frame height). Unset by default. When set, `center_y_ratio` must lie inside it and every card must fit; the renderer fails instead of shrinking the font, because the approved size must stay uniform.
+- Audio: a full render copies an AAC source track unchanged; clips with `--start` or non-AAC sources are encoded to AAC 192k.
 
 ## Reference-demo overrides
 

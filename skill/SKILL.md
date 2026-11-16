@@ -52,7 +52,7 @@ Selection: meaning-bearing complete words or phrases only. Treat each rendered c
 4. Render a 10–15 second clip starting at the first highlight.
 5. Run `preview --video ...` for CJK, Latin, and mixed highlights so stills use the target video's real dimensions.
 6. Inspect baseline, overlap, clipping, phone-frame safe area, avatar avoidance, and reference-demo alignment.
-7. Run `validate --video ... --style ...` to measure every caption with the actual video dimensions and selected font. The renderer may shrink a caption to `font_size_min`; a caption that still exceeds the safe pixel width fails.
+7. Run `validate --video ... --style ...` to measure every caption with the actual video dimensions and selected font. The renderer may shrink a caption to `font_size_min`; a caption that still exceeds the safe pixel width fails. When the video reserves a caption band, set `--band-top-ratio`/`--band-bottom-ratio` (edge px ÷ video height) in `style` first; any card leaving the band then fails before a sample is rendered, and `validate` reports the band margins and widest card.
 
 **STOP.** Full render is forbidden until the user accepts the sample. Style changes create `style-vN.json`; text changes return to Gate 1.
 
